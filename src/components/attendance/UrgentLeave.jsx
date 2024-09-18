@@ -11,14 +11,13 @@ import {
   Paper,
   Container,
   Alert,
-  AlertTitle,
   IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSelector } from "react-redux";
-import { addDays, differenceInDays } from "date-fns";
+import { differenceInDays } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
@@ -49,6 +48,10 @@ const StyledButton = styled(Button)(({ theme }) => ({
     backgroundColor: theme.palette.primary.dark,
     transform: "translateY(-2px)",
     boxShadow: "0 4px 10px rgba(0, 0, 0, 0.15)",
+  },
+  "&:disabled": {
+    backgroundColor: theme.palette.grey[300],
+    color: theme.palette.grey[500],
   },
 }));
 
@@ -87,7 +90,6 @@ const MotionBox = styled(motion.div)({
 });
 
 const UrgentLeaveForm = () => {
-  const { user } = useSelector((state) => state.auth);
   const { addLeaveRequest } = useLeaves();
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -95,6 +97,7 @@ const UrgentLeaveForm = () => {
   const [reason, setReason] = useState("");
   const [selectedName, setSelectedName] = useState("");
   const [alertVisible, setAlertVisible] = useState(false);
+  const [formValid, setFormValid] = useState(false);
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -103,7 +106,24 @@ const UrgentLeaveForm = () => {
     } else {
       setNumberOfDays(0);
     }
-  }, [startDate, endDate]);
+
+    // Validate the form
+    validateForm();
+  }, [startDate, endDate, reason, selectedName]);
+
+  const validateForm = () => {
+    if (
+      selectedName && // Check if name is selected
+      startDate && // Check if start date is selected
+      endDate && // Check if end date is selected
+      reason.trim() !== "" && // Check if reason is provided
+      startDate <= endDate // Ensure start date is before or same as end date
+    ) {
+      setFormValid(true);
+    } else {
+      setFormValid(false);
+    }
+  };
 
   const handleStartDateChange = (date) => {
     setStartDate(date);
@@ -118,26 +138,26 @@ const UrgentLeaveForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!formValid) return; // Prevent form submission if form is invalid
+
     const newLeaveRequest = {
       name: selectedName,
-      startDate: startDate ? startDate.toDateString() : "", // Format the date
-      endDate: endDate ? endDate.toDateString() : "", // Format the date
+      startDate: startDate ? startDate.toDateString() : "", 
+      endDate: endDate ? endDate.toDateString() : "", 
       numberOfDays,
       reason,
       leaveType: "Urgent",
       status: "Pending",
     };
+
     addLeaveRequest(newLeaveRequest);
+    setAlertVisible(true);
 
-    setAlertVisible(true); // Show alert
-
-    // Hide alert after 3 seconds
     setTimeout(() => {
       setAlertVisible(false);
     }, 3000);
   };
 
-  // Random names for the dropdown (you can replace this with actual user data)
   const names = [
     "John Doe",
     "Jane Smith",
@@ -147,8 +167,7 @@ const UrgentLeaveForm = () => {
   ];
 
   return (
-    <Container maxWidth="sm" >
-
+    <Container maxWidth="sm">
       <FormWrapper elevation={3}>
         <MotionBox
           initial={{ opacity: 0, y: 20 }}
@@ -240,50 +259,45 @@ const UrgentLeaveForm = () => {
                 component={motion.button}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                disabled={!formValid} // Disable button if form is not valid
               >
                 Apply for Urgent Leave
               </StyledButton>
             </Box>
-
-            
           </Box>
 
           <AnimatePresence>
-              {alertVisible && (
-                
-                  <Alert
-                    severity="success"
-                    icon={<CheckCircleOutlineIcon fontSize="inherit" />}
-                    action={
-                      <IconButton
-                        aria-label="close"
-                        color="inherit"
-                        size="small"
-                        onClick={() => setAlertVisible(false)}
-                      >
-                        <CloseIcon fontSize="inherit" />
-                      </IconButton>
-                    }
-                    sx={{
-                      background: "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)",
-                      color: "white",
-                      "& .MuiAlert-icon": {
-                        color: "white",
-                      },
-                      "& .MuiIconButton-root": {
-                        color: "white",
-                      },
-                      boxShadow: "0 3px 5px 2px rgba(76, 175, 80, .3)",
-                      borderRadius: "8px",
-                      marginTop: "16px",
-                    }}
+            {alertVisible && (
+              <Alert
+                severity="success"
+                icon={<CheckCircleOutlineIcon fontSize="inherit" />}
+                action={
+                  <IconButton
+                    aria-label="close"
+                    color="inherit"
+                    size="small"
+                    onClick={() => setAlertVisible(false)}
                   >
-                    
-                    Applied Successfully!📧👍
-                  </Alert>
-                
-              )}
-            </AnimatePresence>
+                    <CloseIcon fontSize="inherit" />
+                  </IconButton>
+                }
+                sx={{
+                  background: "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)",
+                  color: "white",
+                  "& .MuiAlert-icon": {
+                    color: "white",
+                  },
+                }}
+                component={motion.div}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                Your leave application has been submitted successfully!
+              </Alert>
+            )}
+          </AnimatePresence>
         </MotionBox>
       </FormWrapper>
     </Container>

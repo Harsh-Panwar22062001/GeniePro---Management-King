@@ -12,21 +12,18 @@ import {
   useMediaQuery,
   TextField,
   Alert,
-  AlertTitle,
   IconButton,
-
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { LocalizationProvider, TimePicker } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import addDays from 'date-fns/addDays';
-import { useExpenses } from '../../components/statemanagement/ExpenseContext';
+import { LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Styled components
 const FormWrapper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
   borderRadius: theme.spacing(2),
@@ -67,71 +64,71 @@ const StyledDatePicker = styled(DatePicker)(({ theme }) => ({
   },
 }));
 
+// Data
 const names = ["SAHIL", "SHIVANGI", "HARSH", "RIYA"];
 const schools = [
   "Moti Ram Arya Senior Secondary School",
   "Saupins School",
   "St. John's High School",
   "St. Kabir Public School",
-  "Office - Drift Developers"
+  "Office - Drift Developers",
 ];
 
 const AddExpense = () => {
   const [name, setName] = useState("");
-  const { addExpense } = useExpenses(); 
   const [toSchool, setToSchool] = useState("");
   const [fromSchool, setFromSchool] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
   const [time, setTime] = useState(null);
   const [amount, setAmount] = useState("");
-  const [alertVisible, setAlertVisible] = useState(false); 
-  
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertSeverity, setAlertSeverity] = useState("success");
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const handleDateChange = (date) => {
-    setSelectedDate(date);
-  };
-
+  // Validation logic
   const handleSubmit = (e) => {
     e.preventDefault();
-    const newExpense = { 
-      name, 
-      toSchool, 
-      fromSchool, 
-      selectedDate, 
-      time,
-      amount: parseFloat(amount)
-    };
-    addExpense(newExpense);
-    
-    // Show alert
+
+    if (!name || !toSchool || !fromSchool || !selectedDate || !time || !amount) {
+      setAlertMessage("Oops! You missed some fields. Please fill them out! 🎯");
+      setAlertSeverity("error");
+      setAlertVisible(true);
+      return;
+    }
+
+    // Show success alert
+    setAlertMessage("Expense added successfully! 🎉");
+    setAlertSeverity("success");
     setAlertVisible(true);
 
-    // Hide alert after 3 seconds
+    // Reset form after success
     setTimeout(() => {
       setAlertVisible(false);
+      setName("");
+      setToSchool("");
+      setFromSchool("");
+      setSelectedDate(null);
+      setTime(null);
+      setAmount("");
     }, 3000);
-
-    // Reset form fields
-    setName("");
-    setToSchool("");
-    setFromSchool("");
-    setSelectedDate(null);
-    setTime(null);
-    setAmount("");
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Container maxWidth="md" sx={{ marginTop: '60px' }}>
+      <Container maxWidth="md" sx={{ marginTop: "60px" }}>
         <FormWrapper elevation={3}>
-          <Typography variant="h4" mb={4} align="center" fontWeight="bold" color="primary">
+          <Typography
+            variant="h4"
+            mb={4}
+            align="center"
+            fontWeight="bold"
+            color="primary"
+          >
             Expense Form
           </Typography>
-
-          
 
           <Box component="form" onSubmit={handleSubmit}>
             <FormControl fullWidth margin="normal">
@@ -185,7 +182,7 @@ const AddExpense = () => {
             <Box mt={2} mb={2}>
               <StyledDatePicker
                 selected={selectedDate}
-                onChange={handleDateChange}
+                onChange={(date) => setSelectedDate(date)}
                 dateFormat="MMMM d, yyyy"
                 placeholderText="Select date"
               />
@@ -216,11 +213,17 @@ const AddExpense = () => {
                 Submit
               </StyledButton>
             </Box>
+
             <AnimatePresence>
               {alertVisible && (
-                
+                <motion.div
+                  initial={{ opacity: 0, y: -50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 50 }}
+                  transition={{ duration: 0.5 }}
+                >
                   <Alert
-                    severity="success"
+                    severity={alertSeverity}
                     icon={<CheckCircleOutlineIcon fontSize="inherit" />}
                     action={
                       <IconButton
@@ -233,7 +236,9 @@ const AddExpense = () => {
                       </IconButton>
                     }
                     sx={{
-                      background: "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)",
+                      background: alertSeverity === "success"
+                        ? "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)"
+                        : "linear-gradient(45deg, #f44336 30%, #ff1744 90%)",
                       color: "white",
                       "& .MuiAlert-icon": {
                         color: "white",
@@ -246,10 +251,9 @@ const AddExpense = () => {
                       marginTop: "16px",
                     }}
                   >
-                    
-                    Applied Successfully!📧👍
+                    {alertMessage}
                   </Alert>
-                
+                </motion.div>
               )}
             </AnimatePresence>
           </Box>

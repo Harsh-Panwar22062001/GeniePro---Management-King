@@ -11,8 +11,7 @@ import {
   Paper,
   Container,
   Alert,
-  AlertTitle,
-  IconButton
+  IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import DatePicker from "react-datepicker";
@@ -22,7 +21,7 @@ import { addDays, differenceInDays } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
-import { useLeaves } from '../../components/statemanagement/LeaveContext';
+import { useLeaves } from "../../components/statemanagement/LeaveContext";
 
 const FormWrapper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -64,14 +63,14 @@ const StyledDatePicker = styled(DatePicker)(({ theme }) => ({
   },
 }));
 
-const StyledDatePickerContainer = styled('div')({
-  '& .react-datepicker-wrapper': {
-    width: '100%',
+const StyledDatePickerContainer = styled("div")({
+  "& .react-datepicker-wrapper": {
+    width: "100%",
   },
-  '& .react-datepicker': {
+  "& .react-datepicker": {
     zIndex: 1000,
   },
-  '& .react-datepicker-popper': {
+  "& .react-datepicker-popper": {
     zIndex: 1000,
   },
 });
@@ -88,14 +87,15 @@ const MotionBox = styled(motion.div)({
 
 const WfhForm = () => {
   const { user } = useSelector((state) => state.auth);
-  const { addLeaveRequest } = useLeaves(); 
+  const { addLeaveRequest } = useLeaves();
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [numberOfDays, setNumberOfDays] = useState(0);
   const [reason, setReason] = useState("");
   const [selectedName, setSelectedName] = useState("");
-  const [showAlert, setShowAlert] = useState(false); // New state for showing alert
   const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(""); // New state for alert message
+  const [alertSeverity, setAlertSeverity] = useState("success"); // New state for alert severity
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -119,6 +119,22 @@ const WfhForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation logic
+    const missingFields = [];
+    if (!selectedName) missingFields.push("Name");
+    if (!startDate) missingFields.push("Start Date");
+    if (!endDate) missingFields.push("End Date");
+    if (!reason) missingFields.push("Reason");
+
+    if (missingFields.length > 0) {
+      setAlertSeverity("error");
+      setAlertMessage(`Please fill in the following fields: ${missingFields.join(", ")}`);
+      setAlertVisible(true);
+      return;
+    }
+
+    // If all fields are filled
     const newLeaveRequest = {
       name: selectedName,
       startDate: startDate ? startDate.toDateString() : "",
@@ -128,10 +144,12 @@ const WfhForm = () => {
       leaveType: "WFH",
       status: "Pending",
     };
-    addLeaveRequest(newLeaveRequest); 
+    addLeaveRequest(newLeaveRequest);
 
-    // Show the alert when the form is successfully submitted
-    setAlertVisible(true); // Show alert
+    // Success alert
+    setAlertSeverity("success");
+    setAlertMessage("Applied Successfully!📧👍");
+    setAlertVisible(true);
 
     // Hide alert after 3 seconds
     setTimeout(() => {
@@ -139,22 +157,12 @@ const WfhForm = () => {
     }, 3000);
   };
 
-  const names = [
-    "John Doe",
-    "Jane Smith",
-    "Michael Johnson",
-    "Emily Brown",
-    "David Wilson",
-  ];
+  const names = ["John Doe", "Jane Smith", "Michael Johnson", "Emily Brown", "David Wilson"];
 
   return (
     <Container maxWidth="sm">
       <FormWrapper elevation={3}>
-        <MotionBox
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+        <MotionBox initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Typography variant="h4" mb={4} align="center" fontWeight="bold" color="primary">
             Apply for Work From Home
           </Typography>
@@ -228,60 +236,38 @@ const WfhForm = () => {
             />
 
             <Box mt={4} display="flex" justifyContent="center">
-              <StyledButton
-                type="submit"
-                variant="contained"
-                component={motion.button}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              <StyledButton type="submit" variant="contained" component={motion.button} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 Submit
               </StyledButton>
             </Box>
 
-            {/* Success Alert */}
+            {/* Success/Error Alert */}
             <AnimatePresence>
               {alertVisible && (
-                <MotionBox
-                  initial={{ opacity: 0, y: -50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -50 }}
-                  transition={{ duration: 0.5 }}
-                >
+                <MotionBox initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -50 }} transition={{ duration: 0.5 }}>
                   <Alert
-                    severity="success"
+                    severity={alertSeverity}
                     icon={<CheckCircleOutlineIcon fontSize="inherit" />}
                     action={
-                      <IconButton
-                        aria-label="close"
-                        color="inherit"
-                        size="small"
-                        onClick={() => setAlertVisible(false)}
-                      >
+                      <IconButton aria-label="close" color="inherit" size="small" onClick={() => setAlertVisible(false)}>
                         <CloseIcon fontSize="inherit" />
                       </IconButton>
                     }
                     sx={{
-                      background: "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)",
+                      background: alertSeverity === "success"
+                        ? "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)"
+                        : "linear-gradient(45deg, #f44336 30%, #e57373 90%)",
                       color: "white",
-                      "& .MuiAlert-icon": {
-                        color: "white",
-                      },
-                      "& .MuiIconButton-root": {
-                        color: "white",
-                      },
-                      boxShadow: "0 3px 5px 2px rgba(76, 175, 80, .3)",
-                      borderRadius: "8px",
-                      marginTop: "16px",
+                      "& .MuiAlert-icon": { color: "white" },
+                      "& .MuiIconButton-root": { color: "white" },
+                      mt: 4,
                     }}
                   >
-                    
-                    Applied Successfully!📧👍
+                    {alertMessage}
                   </Alert>
                 </MotionBox>
               )}
             </AnimatePresence>
-
           </Box>
         </MotionBox>
       </FormWrapper>

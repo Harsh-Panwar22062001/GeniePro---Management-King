@@ -34,8 +34,9 @@ const theme = createTheme();
 function App() {
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Sidebar is open by default
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Sidebar is open by default
   console.log("isSidebarOpen:", isSidebarOpen);
+  
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
