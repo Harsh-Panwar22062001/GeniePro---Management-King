@@ -17,11 +17,14 @@ import { styled } from "@mui/material/styles";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSelector } from "react-redux";
-import { addDays, differenceInDays } from "date-fns";
+import { addDays, differenceInDays,format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
+import { names } from '../../assets/userdata';
 import { useLeaves } from "../../components/statemanagement/LeaveContext";
+
+import axios from "axios";
 
 const FormWrapper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -117,10 +120,9 @@ const WfhForm = () => {
     setEndDate(date);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation logic
+
     const missingFields = [];
     if (!selectedName) missingFields.push("Name");
     if (!startDate) missingFields.push("Start Date");
@@ -134,7 +136,6 @@ const WfhForm = () => {
       return;
     }
 
-    // If all fields are filled
     const newLeaveRequest = {
       name: selectedName,
       startDate: startDate ? startDate.toDateString() : "",
@@ -144,20 +145,59 @@ const WfhForm = () => {
       leaveType: "WFH",
       status: "Pending",
     };
-    addLeaveRequest(newLeaveRequest);
 
-    // Success alert
-    setAlertSeverity("success");
-    setAlertMessage("Applied Successfully!📧👍");
+    const jsonData = {
+      header: "app_wfh",
+      data: {
+        wfh_emp_id: "emp001",
+        wfh_strt_date: startDate ? format(startDate, "dd/MM/yyyy") : "",
+        wfh_end_date: endDate ? format(endDate, "dd/MM/yyyy") : "",
+        wfh_no_days: numberOfDays.toString(),
+        wfh_reason: reason,
+        wfh_file: "",
+        wfh_type: "sick",
+      },
+    };
+
+    try {
+      const response = await axios.post("https://workpanel.in/office_app/put_data/apply_whf.php", jsonData);
+  
+      console.log("Raw server response:", response.data);
+  
+      let parsedData = response.data;
+  
+      console.log("Parsed server response:", parsedData);
+  
+      if (parsedData.success && parsedData.msg === "1") {
+        addLeaveRequest(newLeaveRequest);
+  
+        setAlertSeverity("success");
+        setAlertMessage("Applied Successfully!");
+      } else {
+        setAlertSeverity("error");
+        setAlertMessage(`Failed to apply. Server response: ${JSON.stringify(parsedData)}`);
+      }
+    } catch (error) {
+      console.error("Error applying leave:", error);
+      setAlertSeverity("error");
+      setAlertMessage(`An error occurred. Please try again. Error: ${error.message}`);
+    }
+  
     setAlertVisible(true);
-
-    // Hide alert after 3 seconds
+  
     setTimeout(() => {
       setAlertVisible(false);
-    }, 3000);
+    }, 5000);
   };
 
-  const names = ["John Doe", "Jane Smith", "Michael Johnson", "Emily Brown", "David Wilson"];
+
+  const namesList = names.map((name) => (
+    name && (
+      <MenuItem key={name} value={name}>
+        {name}
+      </MenuItem>
+    )
+  ));
 
   return (
     <Container maxWidth="sm">
@@ -171,17 +211,19 @@ const WfhForm = () => {
             <FormControl fullWidth margin="normal">
               <InputLabel id="name-select-label">Name</InputLabel>
               <StyledSelect
-                labelId="name-select-label"
-                value={selectedName}
-                onChange={(e) => setSelectedName(e.target.value)}
-                label="Name"
-              >
-                {names.map((name) => (
-                  <MenuItem key={name} value={name}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </StyledSelect>
+  labelId="name-select-label"
+  value={selectedName}
+  onChange={(e) => setSelectedName(e.target.value)}
+  label="Name"
+>
+{names.map((name) => (
+  name.name && name.name.trim() !== "" && (
+    <MenuItem key={name.emp_id} value={name.name}>
+      {name.name}
+    </MenuItem>
+  )
+))}
+</StyledSelect>
             </FormControl>
 
             <StyledDatePickerContainer>

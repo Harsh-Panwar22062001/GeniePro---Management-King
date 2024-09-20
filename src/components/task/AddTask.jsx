@@ -19,7 +19,10 @@ import {
 import { useTasks } from '../../components/statemanagement/TaskContext';
 import { motion, AnimatePresence } from "framer-motion";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+
 import CloseIcon from "@mui/icons-material/Close";
+import { names ,projects , prioritySelect } from '../../assets/userdata';
+import axios from "axios";
 import { AddCircleOutline, DateRange, AssignmentInd, Flag, Star, Description, Image, Cancel } from '@mui/icons-material';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -128,11 +131,14 @@ const AddTask = () => {
   const [createdDate, setCreatedDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
+  const [images, setImages] = useState([]);
   const [priority, setPriority] = useState("");
   const [points, setPoints] = useState("");
   const [description, setDescription] = useState("");
-  const [images, setImages] = useState([]);
   const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertSeverity, setAlertSeverity] = useState("success");
+
 
   // Error states
   const [errors, setErrors] = useState({
@@ -146,9 +152,10 @@ const AddTask = () => {
     description: "",
   });
 
-  const projectOptions = ["Project 1", "Project 2", "Project 3"];
-  const assignedToOptions = ["SAHIL", "SHIVANGI", "HARSH", "RIYA"];
-  const priorityOptions = ["High", "Medium", "Low"];
+  const projectOptions = projects;
+  const assignedToOptions = names;
+  const priorityOptions = prioritySelect;
+  
 
   const validate = () => {
     let isValid = true;
@@ -195,27 +202,73 @@ const AddTask = () => {
     return isValid;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     if (!validate()) return;
-
-    const newTask = {
-      name: taskName,
-      projectName,
-      createdDate,
-      endDate,
-      assignedTo,
-      priority,
-      points,
-      description,
-      imageUrls: images.map((img) => URL.createObjectURL(img.file)),
-      status: "Pending",
-      latestRemark: "",
-      latestClientRemark: "",
+  
+    const employeeIdMap = names.reduce((acc, name, index) => {
+      acc[name] = `emp${String(index + 1).padStart(4, '0')}`;
+      return acc;
+    }, {});
+  
+    const formattedCreatedDate = createdDate.split('-').reverse().join('/');
+    const formattedEndDate = endDate.split('-').reverse().join('/');
+  
+    const projectNumber = projectOptions.indexOf(projectName) + 1;
+  
+    const jsonData = {
+      header: "app_task",
+      data: {
+        task_emp_id: employeeIdMap[assignedTo] || "",
+        task_name: taskName,
+        task_project_id: projectNumber,
+        task_start_date: formattedCreatedDate,
+        task_end_date: formattedEndDate,
+        task_priority: priority.toLowerCase(),
+        task_points: parseInt(points),
+        task_description: description,
+      },
     };
-    addTask(newTask);
-
+  
+    console.log("Sending data:", JSON.stringify(jsonData, null, 2));
+  
+    try {
+      const response = await axios.post('https://workpanel.in/office_app/put_data/add_new_task.php', jsonData);
+      console.log("API Response:", response.data);
+  
+      if (response.data.success && response.data.msg === '1') {
+        // Task added successfully
+        addTask({
+          name: taskName,
+          projectName,
+          createdDate,
+          endDate,
+          assignedTo,
+          priority,
+          points,
+          description,
+          status: "Pending",
+          latestRemark: "",
+          latestClientRemark: "",
+        });
+  
+        setAlertMessage("Task added successfully!");
+        setAlertSeverity("success");
+      } else {
+        // Task addition failed
+        setAlertMessage(`Failed to add task. Server response: ${JSON.stringify(response.data)}`);
+        setAlertSeverity("error");
+      }
+    } catch (error) {
+      console.error("Error adding task:", error);
+      setAlertMessage(`An error occurred: ${error.message}. Please try again.`);
+      setAlertSeverity("error");
+    }
+  
+    setAlertVisible(true);
+  
+    // Reset form fields
     setTaskName("");
     setProjectName("");
     setCreatedDate("");
@@ -224,13 +277,10 @@ const AddTask = () => {
     setPriority("");
     setPoints("");
     setDescription("");
-    setImages([]);
-
-    setAlertVisible(true);
-
+  
     setTimeout(() => {
       setAlertVisible(false);
-    }, 3000);
+    }, 5000);
   };
 
   return (
@@ -318,17 +368,17 @@ const AddTask = () => {
               <FormControl fullWidth variant="outlined">
                 <InputLabel>Assigned To</InputLabel>
                 <CustomSelect
-                  value={assignedTo}
-                  onChange={(e) => setAssignedTo(e.target.value)}
-                  label="Assigned To"
-                  error={Boolean(errors.assignedTo)}
-                >
-                  {assignedToOptions.map((user) => (
-                    <MenuItem key={user} value={user}>
-                      {user}
-                    </MenuItem>
-                  ))}
-                </CustomSelect>
+  value={assignedTo}
+  onChange={(e) => setAssignedTo(e.target.value)}
+  label="Assigned To"
+  error={Boolean(errors.assignedTo)}
+>
+  {assignedToOptions.map((user) => (
+    <MenuItem key={user.emp_id} value={user.name}>
+      {user.name}
+    </MenuItem>
+  ))}
+</CustomSelect>
                 {errors.assignedTo && <Typography color="error">{errors.assignedTo}</Typography>}
               </FormControl>
             </Grid>
@@ -336,18 +386,18 @@ const AddTask = () => {
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth variant="outlined">
                 <InputLabel>Priority</InputLabel>
-                <CustomSelect
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  label="Priority"
-                  error={Boolean(errors.priority)}
-                >
-                  {priorityOptions.map((priority) => (
-                    <MenuItem key={priority} value={priority}>
-                      {priority}
-                    </MenuItem>
-                  ))}
-                </CustomSelect>
+              <CustomSelect
+  value={priority}
+  onChange={(e) => setPriority(e.target.value)}
+  label="Priority"
+  error={Boolean(errors.priority)}
+>
+  {priorityOptions.map((priority) => (
+    <MenuItem key={priority} value={priority}>
+      {priority}
+    </MenuItem>
+  ))}
+</CustomSelect>
                 {errors.priority && <Typography color="error">{errors.priority}</Typography>}
               </FormControl>
             </Grid>
@@ -427,41 +477,40 @@ const AddTask = () => {
         </form>
 
         <AnimatePresence>
-              {alertVisible && (
-                
-                  <Alert
-                    severity="success"
-                    icon={<CheckCircleOutlineIcon fontSize="inherit" />}
-                    action={
-                      <IconButton
-                        aria-label="close"
-                        color="inherit"
-                        size="small"
-                        onClick={() => setAlertVisible(false)}
-                      >
-                        <CloseIcon fontSize="inherit" />
-                      </IconButton>
-                    }
-                    sx={{
-                      background: "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)",
-                      color: "white",
-                      "& .MuiAlert-icon": {
-                        color: "white",
-                      },
-                      "& .MuiIconButton-root": {
-                        color: "white",
-                      },
-                      boxShadow: "0 3px 5px 2px rgba(76, 175, 80, .3)",
-                      borderRadius: "8px",
-                      marginTop: "16px",
-                    }}
-                  >
-                    
-                    Applied Successfully!📧👍
-                  </Alert>
-                
-              )}
-            </AnimatePresence>
+          {alertVisible && (
+            <Alert
+              severity={alertSeverity}
+              icon={<CheckCircleOutlineIcon fontSize="inherit" />}
+              action={
+                <IconButton
+                  aria-label="close"
+                  color="inherit"
+                  size="small"
+                  onClick={() => setAlertVisible(false)}
+                >
+                  <CloseIcon fontSize="inherit" />
+                </IconButton>
+              }
+              sx={{
+                background: alertSeverity === "success" 
+                  ? "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)"
+                  : "linear-gradient(45deg, #f44336 30%, #ff9800 90%)",
+                color: "white",
+                "& .MuiAlert-icon": {
+                  color: "white",
+                },
+                "& .MuiIconButton-root": {
+                  color: "white",
+                },
+                boxShadow: "0 3px 5px 2px rgba(76, 175, 80, .3)",
+                borderRadius: "8px",
+                marginTop: "16px",
+              }}
+            >
+              {alertMessage}
+            </Alert>
+          )}
+        </AnimatePresence>
       </StyledPaper>
     </Container>
   );

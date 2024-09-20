@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Box,
   Button,
@@ -17,8 +18,9 @@ import { styled } from "@mui/material/styles";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSelector } from "react-redux";
-import { differenceInDays } from "date-fns";
+import { differenceInDays , format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import { names } from '../../assets/userdata';
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import { useLeaves } from "../../components/statemanagement/LeaveContext";
@@ -97,6 +99,8 @@ const UrgentLeaveForm = () => {
   const [reason, setReason] = useState("");
   const [selectedName, setSelectedName] = useState("");
   const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertSeverity, setAlertSeverity] = useState("success");
   const [formValid, setFormValid] = useState(false);
 
   useEffect(() => {
@@ -136,35 +140,95 @@ const UrgentLeaveForm = () => {
     setEndDate(date);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formValid) return; // Prevent form submission if form is invalid
+    if (!formValid) return;
 
-    const newLeaveRequest = {
-      name: selectedName,
-      startDate: startDate ? startDate.toDateString() : "", 
-      endDate: endDate ? endDate.toDateString() : "", 
-      numberOfDays,
-      reason,
-      leaveType: "Urgent",
-      status: "Pending",
+    const formattedStartDate = startDate ? format(startDate, "dd/MM/yyyy") : "";
+    const formattedEndDate = endDate ? format(endDate, "dd/MM/yyyy") : "";
+
+
+    const selectedEmployee = names.find((name) => name.name === selectedName);
+    const empId = selectedEmployee.emp_id;
+
+    const jsonData = {
+      header: "app_leave",
+      data: {
+        leave_emp_id: empId, // Replace with actual employee ID
+        leave_strt_date: formattedStartDate,
+        leave_end_date: formattedEndDate,
+        leave_no_days: numberOfDays.toString(),
+        leave_reason: reason,
+        leave_file: "", // You might want to handle file upload separately
+        leave_type: "urgent"
+      }
     };
 
-    addLeaveRequest(newLeaveRequest);
+    console.log("Sending data:", JSON.stringify(jsonData, null, 2));
+
+    try {
+      const response = await axios.post('https://workpanel.in/office_app/put_data/apply_leave.php', jsonData);
+      
+      console.log("Raw server response:", response.data);
+
+      // Extract JSON from the response
+      const jsonStartIndex = response.data.indexOf('{');
+      const jsonEndIndex = response.data.lastIndexOf('}') + 1;
+      const jsonString = response.data.slice(jsonStartIndex, jsonEndIndex);
+
+      let parsedData;
+      try {
+        parsedData = JSON.parse(jsonString);
+      } catch (error) {
+        console.error("Error parsing response data:", error);
+        parsedData = { success: false, msg: "Error parsing server response" };
+      }
+
+      console.log("Parsed server response:", parsedData);
+
+      if (parsedData.success === true && parsedData.msg === "1") {
+        setAlertMessage("Urgent leave applied successfully!");
+        setAlertSeverity("success");
+        
+        addLeaveRequest({
+          name: selectedName,
+          startDate: startDate ? startDate.toDateString() : "",
+          endDate: endDate ? endDate.toDateString() : "",
+          numberOfDays,
+          reason,
+          leaveType: "Urgent",
+          status: "Pending",
+        });
+
+        // Reset form
+        setSelectedName("");
+        setStartDate(null);
+        setEndDate(null);
+        setReason("");
+        setNumberOfDays(0);
+      } else {
+        setAlertMessage(`Failed to apply leave. Please try again. Server response: ${JSON.stringify(parsedData)}`);
+        setAlertSeverity("error");
+      }
+    } catch (error) {
+      console.error("Error applying leave:", error);
+      setAlertMessage(`An error occurred. Please try again. Error: ${error.message}`);
+      setAlertSeverity("error");
+    }
+
     setAlertVisible(true);
 
     setTimeout(() => {
       setAlertVisible(false);
-    }, 3000);
+    }, 5000);
   };
 
-  const names = [
-    "John Doe",
-    "Jane Smith",
-    "Michael Johnson",
-    "Emily Brown",
-    "David Wilson",
-  ];
+  const namesList = names.map((name) => (
+    <MenuItem key={name} value={name}>
+      {name}
+    </MenuItem>
+  ));
+
 
   return (
     <Container maxWidth="sm">
@@ -188,17 +252,17 @@ const UrgentLeaveForm = () => {
             <FormControl fullWidth margin="normal">
               <InputLabel id="name-select-label">Name</InputLabel>
               <StyledSelect
-                labelId="name-select-label"
-                value={selectedName}
-                onChange={(e) => setSelectedName(e.target.value)}
-                label="Name"
-              >
-                {names.map((name) => (
-                  <MenuItem key={name} value={name}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </StyledSelect>
+  labelId="name-select-label"
+  value={selectedName}
+  onChange={(e) => setSelectedName(e.target.value)}
+  label="Name"
+>
+  {names.map((name) => (
+    <MenuItem key={name.emp_id} value={name.name}>
+      {name.name}
+    </MenuItem>
+  ))}
+</StyledSelect>
             </FormControl>
 
             <StyledDatePickerContainer>
@@ -269,7 +333,7 @@ const UrgentLeaveForm = () => {
           <AnimatePresence>
             {alertVisible && (
               <Alert
-                severity="success"
+                severity={alertSeverity}
                 icon={<CheckCircleOutlineIcon fontSize="inherit" />}
                 action={
                   <IconButton
@@ -282,7 +346,9 @@ const UrgentLeaveForm = () => {
                   </IconButton>
                 }
                 sx={{
-                  background: "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)",
+                  background: alertSeverity === "success"
+                    ? "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)"
+                    : "linear-gradient(45deg, #f44336 30%, #ff9800 90%)",
                   color: "white",
                   "& .MuiAlert-icon": {
                     color: "white",
@@ -294,7 +360,7 @@ const UrgentLeaveForm = () => {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                Your leave application has been submitted successfully!
+                {alertMessage}
               </Alert>
             )}
           </AnimatePresence>

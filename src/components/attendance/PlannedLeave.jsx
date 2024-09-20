@@ -17,11 +17,13 @@ import {
 import { styled } from "@mui/material/styles";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import axios from "axios";
 import { useSelector } from "react-redux";
-import { addDays } from "date-fns";
+import { addDays ,format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
+import { names } from '../../assets/userdata';
 import { useLeaves } from '../../components/statemanagement/LeaveContext';
 
 const FormWrapper = styled(Paper)(({ theme }) => ({
@@ -93,6 +95,8 @@ const PlannedLeave = () => {
   const [reason, setReason] = useState("");
   const [selectedName, setSelectedName] = useState("");
   const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+const [alertSeverity, setAlertSeverity] = useState("success");
   const [errors, setErrors] = useState({
     name: "",
     date: "",
@@ -129,30 +133,80 @@ const PlannedLeave = () => {
     return isValid;
   };
 
-  const handleSubmit = (e) => {
+
+   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
-      const newLeaveRequest = {
-        name: selectedName,
-        startDate: selectedDate ? selectedDate.toDateString() : "",
-        reason: reason,
-        leaveType: "Planned",
-        numberOfDays: 1,
-        status: "Pending",
+      const formattedDate = selectedDate ? format(selectedDate, "dd/MM/yyyy") : "";
+
+      const jsonData = {
+        header: "app_leave",
+        data: {
+          leave_emp_id: "emp001", // You might want to replace this with actual employee ID
+          leave_strt_date: formattedDate,
+          leave_end_date: formattedDate, // For planned leave, start and end date are the same
+          leave_no_days: "1",
+          leave_reason: reason,
+          leave_file: "", // You might want to handle file upload separately
+          leave_type: "planned"
+        }
       };
 
-      addLeaveRequest(newLeaveRequest);
-      setAlertVisible(true);
+      console.log("Sending data:", JSON.stringify(jsonData, null, 2));
 
-      // Reset form
-      setSelectedName("");
-      setSelectedDate(null);
-      setReason("");
+      try {
+        const response = await axios.post('https://workpanel.in/office_app/put_data/apply_leave.php', jsonData);
+
+        console.log("Raw server response:", response.data);
+
+        // Extract JSON from the response
+        const jsonStartIndex = response.data.indexOf('{');
+        const jsonEndIndex = response.data.lastIndexOf('}') + 1;
+        const jsonString = response.data.slice(jsonStartIndex, jsonEndIndex);
+
+        let parsedData;
+        try {
+          parsedData = JSON.parse(jsonString);
+        } catch (error) {
+          console.error("Error parsing response data:", error);
+          parsedData = { success: false, msg: "Error parsing server response" };
+        }
+
+        console.log("Parsed server response:", parsedData);
+        
+        if (parsedData.success && parsedData.msg === '1') {
+          setAlertMessage("Leave applied successfully!");
+          setAlertSeverity("success");
+          
+          addLeaveRequest({
+            name: selectedName,
+            startDate: selectedDate ? selectedDate.toDateString() : "",
+            reason: reason,
+            leaveType: "Planned",
+            numberOfDays: 1,
+            status: "Pending",
+          });
+
+          // Reset form
+          setSelectedName("");
+          setSelectedDate(null);
+          setReason("");
+        } else {
+          setAlertMessage(`Failed to apply leave. Please try again. Server response: ${JSON.stringify(parsedData)}`);
+          setAlertSeverity("error");
+        }
+      } catch (error) {
+        console.error("Error applying leave:", error);
+        setAlertMessage(`An error occurred. Please try again. Error: ${error.message}`);
+        setAlertSeverity("error");
+      }
+
+      setAlertVisible(true);
 
       setTimeout(() => {
         setAlertVisible(false);
-      }, 3000);
+      }, 5000); // Increased to 5 seconds for better visibility
     }
   };
 
@@ -160,14 +214,6 @@ const PlannedLeave = () => {
     return date > new Date();
   };
 
-  // Random names for the dropdown
-  const names = [
-    "John Doe",
-    "Jane Smith",
-    "Michael Johnson",
-    "Emily Brown",
-    "David Wilson",
-  ];
 
   return (
     <Container maxWidth="sm">
@@ -185,17 +231,17 @@ const PlannedLeave = () => {
             <FormControl fullWidth margin="normal" error={!!errors.name}>
               <InputLabel id="name-select-label">Name</InputLabel>
               <StyledSelect
-                labelId="name-select-label"
-                value={selectedName}
-                onChange={(e) => setSelectedName(e.target.value)}
-                label="Name"
-              >
-                {names.map((name) => (
-                  <MenuItem key={name} value={name}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </StyledSelect>
+  labelId="name-select-label"
+  value={selectedName}
+  onChange={(e) => setSelectedName(e.target.value)}
+  label="Name"
+>
+  {names.map((name) => (
+    <MenuItem key={name.emp_id} value={name.name}>
+      {name.name}
+    </MenuItem>
+  ))}
+</StyledSelect>
               {errors.name && <FormHelperText>{errors.name}</FormHelperText>}
             </FormControl>
 
@@ -246,35 +292,37 @@ const PlannedLeave = () => {
                   exit={{ opacity: 0, y: -50 }}
                   transition={{ duration: 0.5 }}
                 >
-                  <Alert
-                    severity="success"
-                    icon={<CheckCircleOutlineIcon fontSize="inherit" />}
-                    action={
-                      <IconButton
-                        aria-label="close"
-                        color="inherit"
-                        size="small"
-                        onClick={() => setAlertVisible(false)}
-                      >
-                        <CloseIcon fontSize="inherit" />
-                      </IconButton>
-                    }
-                    sx={{
-                      background: "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)",
-                      color: "white",
-                      "& .MuiAlert-icon": {
-                        color: "white",
-                      },
-                      "& .MuiIconButton-root": {
-                        color: "white",
-                      },
-                      boxShadow: "0 3px 5px 2px rgba(76, 175, 80, .3)",
-                      borderRadius: "8px",
-                      marginTop: "16px",
-                    }}
-                  >
-                    Applied Successfully!📧👍
-                  </Alert>
+                 <Alert
+  severity={alertSeverity}
+  icon={<CheckCircleOutlineIcon fontSize="inherit" />}
+  action={
+    <IconButton
+      aria-label="close"
+      color="inherit"
+      size="small"
+      onClick={() => setAlertVisible(false)}
+    >
+      <CloseIcon fontSize="inherit" />
+    </IconButton>
+  }
+  sx={{
+    background: alertSeverity === "success" 
+      ? "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)"
+      : "linear-gradient(45deg, #f44336 30%, #ff9800 90%)",
+    color: "white",
+    "& .MuiAlert-icon": {
+      color: "white",
+    },
+    "& .MuiIconButton-root": {
+      color: "white",
+    },
+    boxShadow: "0 3px 5px 2px rgba(76, 175, 80, .3)",
+    borderRadius: "8px",
+    marginTop: "16px",
+  }}
+>
+  {alertMessage}
+</Alert>
                 </MotionBox>
               )}
             </AnimatePresence>

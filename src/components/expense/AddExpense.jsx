@@ -22,6 +22,10 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import { motion, AnimatePresence } from "framer-motion";
+import dayjs from "dayjs";
+import { names , schools} from '../../assets/userdata';
+import axios from "axios";
+
 
 // Styled components
 const FormWrapper = styled(Paper)(({ theme }) => ({
@@ -64,15 +68,8 @@ const StyledDatePicker = styled(DatePicker)(({ theme }) => ({
   },
 }));
 
-// Data
-const names = ["SAHIL", "SHIVANGI", "HARSH", "RIYA"];
-const schools = [
-  "Moti Ram Arya Senior Secondary School",
-  "Saupins School",
-  "St. John's High School",
-  "St. Kabir Public School",
-  "Office - Drift Developers",
-];
+
+
 
 const AddExpense = () => {
   const [name, setName] = useState("");
@@ -81,6 +78,7 @@ const AddExpense = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [time, setTime] = useState(null);
   const [amount, setAmount] = useState("");
+  const [selectedName, setSelectedName] = useState("");
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertSeverity, setAlertSeverity] = useState("success");
@@ -88,32 +86,73 @@ const AddExpense = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+
+
+
+
   // Validation logic
-  const handleSubmit = (e) => {
+  
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!name || !toSchool || !fromSchool || !selectedDate || !time || !amount) {
-      setAlertMessage("Oops! You missed some fields. Please fill them out! 🎯");
+   if (!selectedName || !toSchool || !fromSchool || !selectedDate || !time || !amount) {
+    setAlertMessage("Oops! You missed some fields. Please fill them out! 🎯");
+    setAlertSeverity("error");
+    setAlertVisible(true);
+    return;
+  }
+
+    const formattedDate = dayjs(selectedDate).format("DD/MM/YYYY");
+    const formattedTime = dayjs(time).format("HH:mm:ss");
+
+    const selectedEmployee = names.find((name) => name.name === selectedName);
+    const empId = selectedEmployee.emp_id;
+
+    const jsonData = {
+      header: "app_exp",
+      data: {
+        exp_emp_id: empId, // This is hardcoded as per the example
+        exp_to: toSchool,
+        exp_from: fromSchool,
+        exp_date: formattedDate,
+        exp_time: formattedTime,
+        exp_amt: amount,
+        exp_upload: "", // This field is empty as it's not part of the form
+      },
+    };
+
+    try {
+      const response = await axios.post(
+        "https://workpanel.in/office_app/put_data/add_expense.php",
+        jsonData
+      );
+
+      if (response.data.success) {
+        setAlertMessage("Expense added successfully! 🎉");
+        setAlertSeverity("success");
+        
+        // Reset form after success
+        setName("");
+        setToSchool("");
+        setFromSchool("");
+        setSelectedDate(null);
+        setTime(null);
+        setAmount("");
+      } else {
+        setAlertMessage("Failed to add expense. Please try again. 🤕");
+        setAlertSeverity("error");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setAlertMessage("An error occurred. Please try again. 🤕");
       setAlertSeverity("error");
-      setAlertVisible(true);
-      return;
     }
 
-    // Show success alert
-    setAlertMessage("Expense added successfully! 🎉");
-    setAlertSeverity("success");
     setAlertVisible(true);
 
-    // Reset form after success
     setTimeout(() => {
       setAlertVisible(false);
-      setName("");
-      setToSchool("");
-      setFromSchool("");
-      setSelectedDate(null);
-      setTime(null);
-      setAmount("");
-    }, 3000);
+    }, 5000);
   };
 
   return (
@@ -131,21 +170,21 @@ const AddExpense = () => {
           </Typography>
 
           <Box component="form" onSubmit={handleSubmit}>
-            <FormControl fullWidth margin="normal">
-              <InputLabel id="name-select-label">Name</InputLabel>
-              <Select
-                labelId="name-select-label"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                label="Name"
-              >
-                {names.map((name) => (
-                  <MenuItem key={name} value={name}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          <FormControl fullWidth margin="normal">
+  <InputLabel id="name-select-label">Name</InputLabel>
+  <Select
+    labelId="name-select-label"
+    value={selectedName}
+    onChange={(e) => setSelectedName(e.target.value)}
+    label="Name"
+  >
+    {names.map((name) => (
+      <MenuItem key={name.emp_id} value={name.name}>
+        {name.name}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
 
             <FormControl fullWidth margin="normal">
               <InputLabel id="from-select-label">From</InputLabel>
