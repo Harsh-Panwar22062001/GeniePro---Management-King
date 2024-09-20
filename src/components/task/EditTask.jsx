@@ -4,6 +4,9 @@ import { styled } from "@mui/system";
 import { keyframes } from "@mui/system";
 import { useTasks } from '../../components/statemanagement/TaskContext';
 import { AutoAwesome, CalendarToday, Person, Flag, Star } from '@mui/icons-material';
+import axios from 'axios';
+import moment from 'moment';
+
 
 // Define animations
 const fadeIn = keyframes`
@@ -52,7 +55,9 @@ const SaveButton = styled(Button)(({ theme }) => ({
 const EditTask = () => {
   const { tasks, updateTask } = useTasks();
   const [selectedTask, setSelectedTask] = useState(null);
-  const [alertVisible, setAlertVisible] = useState(false); 
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertSeverity, setAlertSeverity] = useState("success"); 
 
   const handleSelectTask = (event) => {
     const taskId = event.target.value;
@@ -67,23 +72,71 @@ const EditTask = () => {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+
+
+
+    
     if (selectedTask) {
-      console.log("Submitting task:", selectedTask);
-      updateTask(selectedTask);
+      try {
+        const jsonData = {
+          header: "app_task_edit",
+          data: {
+            task_id: selectedTask.id,
+            task_emp_id: selectedTask.assignedTo,
+            task_name: selectedTask.name,
+            task_project_id: selectedTask.projectName,
+            task_start_date: moment(selectedTask.createdDate).format('MM/DD/YYYY'),
+            task_end_date: moment(selectedTask.endDate).format('MM/DD/YYYY'),
+            task_priority: selectedTask.priority,
+            task_points: selectedTask.points,
+            task_description: selectedTask.description || ""
+          }
+        };
+
+        console.log("Sending data:", JSON.stringify(jsonData, null, 2));
+  
+        console.log("Sending data to API:", jsonData);
+  
+        const response = await axios.post('https://workpanel.in/office_app/update_data/edit_task.php', jsonData);
+
+      
+  
+        console.log("API Response:", response.data);
+  
+        if (response.data.success === true) {
+          updateTask(selectedTask);
+          setAlertMessage("Task updated successfully!");
+          setAlertSeverity("success");
+        } else {
+          setAlertMessage(`Failed to Edit task. Server response: ${JSON.stringify(response.data)}`);
+          setAlertSeverity("error");
+        }
+      } catch (error) {
+        console.error("Error updating task:", error);
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          console.error("Error response data:", error.response.data);
+          console.error("Error response status:", error.response.status);
+          console.error("Error response headers:", error.response.headers);
+          setAlertMessage(`Server error: ${error.response.data.message || error.response.statusText}`);
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.error("Error request:", error.request);
+          setAlertMessage("No response received from server. Please try again.");
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.error("Error message:", error.message);
+          setAlertMessage(`An error occurred: ${error.message}`);
+        }
+        setAlertSeverity("error");
+      }
+  
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 5000); // Increased to 5 seconds for better visibility
       setSelectedTask(null);
     }
-
-    setAlertVisible(true); // Show alert
-
-    // Hide alert after 3 seconds
-    setTimeout(() => {
-      setAlertVisible(false);
-    }, 3000);
-
-
-
-
   };
 
   return (
@@ -112,11 +165,11 @@ const EditTask = () => {
 
 
 
-          {alertVisible && ( // Conditionally render the Alert component
-          <Alert severity="success" color="info" sx={{ mb: 2 }}>
-            Task Edit successfully! 👍👍
-          </Alert>
-        )}
+          {alertVisible && (
+            <Alert severity={alertSeverity} sx={{ mb: 2, mt: 2 }}>
+              {alertMessage}
+            </Alert>
+          )}
 
           {selectedTask && (
             <Box mt={3}>

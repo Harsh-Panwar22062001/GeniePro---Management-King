@@ -14,7 +14,21 @@ export const ExpenseProvider = ({ children }) => {
 
   const updateExpense = (updatedExpense) => {
     setExpenses((prevExpenses) =>
-      prevExpenses.map((expense) => (expense.id === updatedExpense.id ? updatedExpense : expense))
+      prevExpenses.map((expense) => {
+        if (expense.id === updatedExpense.exp_id) {
+          return {
+            ...expense,
+            name: updatedExpense.exp_emp_id,
+            toSchool: updatedExpense.exp_to,
+            fromSchool: updatedExpense.exp_from,
+            selectedDate: updatedExpense.exp_date,
+            time: updatedExpense.exp_time,
+            amount: updatedExpense.exp_amt,
+            upload: updatedExpense.exp_upload,
+          };
+        }
+        return expense;
+      })
     );
   };
 

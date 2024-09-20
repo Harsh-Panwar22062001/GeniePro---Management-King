@@ -1,8 +1,11 @@
-import React ,{useState}from 'react';
+import React, { useState } from 'react';
 import { useExpenses } from '../../components/statemanagement/ExpenseContext';
-import { Box, Paper, Typography, Grid, Card, CardContent, CardHeader, Chip  } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, CardHeader, Chip, IconButton } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
+import dayjs from 'dayjs';
+import EditExpense from './EditExpense';
+import { Edit } from '@mui/icons-material';
 
 const StyledCard = styled(Card)(({ theme }) => ({
   transition: 'all 0.3s ease-in-out',
@@ -15,16 +18,25 @@ const StyledCard = styled(Card)(({ theme }) => ({
 const AnimatedCard = motion(StyledCard);
 
 const ExpenseMaster = () => {
-  const { expenses } = useExpenses();
-  const [alertVisible, setAlertVisible] = useState(false); 
+  const { expenses, updateExpense } = useExpenses();
+  const [editingExpense, setEditingExpense] = useState(null);
 
+  const handleEditExpense = (expense) => {
+    setEditingExpense(expense);
+  };
 
+  const handleCloseEdit = () => {
+    setEditingExpense(null);
+  };
 
-  
+  const handleUpdateExpense = (updatedExpense) => {
+    updateExpense(updatedExpense);
+    setEditingExpense(null);
+  };
 
   return (
     <Box sx={{ padding: 4 }}>
-      <Typography variant="h4" mb={6} align="center" fontWeight="bold" color="primary" style = {{marginTop:"30px" , marginRight:"70"}}>
+      <Typography variant="h4" mb={6} align="center" fontWeight="bold" color="primary" style={{ marginTop: "30px" }}>
         Expense Master
       </Typography>
       <Grid container spacing={4}>
@@ -41,11 +53,12 @@ const ExpenseMaster = () => {
                 subheader={`Amount: ₹${expense.amount}`}
                 action={
                   <Chip
-                    label={expense.selectedDate?.toLocaleDateString()}
-                    color="primary"
-                    variant="outlined"
-                  />
+                  label={dayjs(expense.selectedDate).format("DD/MM/YYYY")}
+                  color="primary"
+                  variant="outlined"
+                />
                 }
+                sx={{ display: 'flex', justifyContent: 'space-between' }}
               />
               <CardContent>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -58,10 +71,25 @@ const ExpenseMaster = () => {
                   <strong>Time:</strong> {expense.time?.format('HH:mm')}
                 </Typography>
               </CardContent>
+              <IconButton
+                aria-label="edit"
+                color="primary"
+                size="small"
+                onClick={() => handleEditExpense(expense)}
+              >
+                <Edit fontSize="inherit" />
+              </IconButton>
             </AnimatedCard>
           </Grid>
         ))}
       </Grid>
+      {editingExpense && (
+        <EditExpense
+          expense={editingExpense}
+          onClose={handleCloseEdit}
+          onUpdate={handleUpdateExpense}
+        />
+      )}
     </Box>
   );
 };

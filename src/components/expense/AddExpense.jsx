@@ -22,6 +22,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import { motion, AnimatePresence } from "framer-motion";
+import { useExpenses } from '../../components/statemanagement/ExpenseContext';
+
 import dayjs from "dayjs";
 import { names , schools} from '../../assets/userdata';
 import axios from "axios";
@@ -72,6 +74,7 @@ const StyledDatePicker = styled(DatePicker)(({ theme }) => ({
 
 
 const AddExpense = () => {
+  const { addExpense } = useExpenses();
   const [name, setName] = useState("");
   const [toSchool, setToSchool] = useState("");
   const [fromSchool, setFromSchool] = useState("");
@@ -94,20 +97,20 @@ const AddExpense = () => {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-   if (!selectedName || !toSchool || !fromSchool || !selectedDate || !time || !amount) {
-    setAlertMessage("Oops! You missed some fields. Please fill them out! 🎯");
-    setAlertSeverity("error");
-    setAlertVisible(true);
-    return;
-  }
-
+  
+    if (!selectedName || !toSchool || !fromSchool || !selectedDate || !time || !amount) {
+      setAlertMessage("Oops! You missed some fields. Please fill them out! 🎯");
+      setAlertSeverity("error");
+      setAlertVisible(true);
+      return;
+    }
+  
     const formattedDate = dayjs(selectedDate).format("DD/MM/YYYY");
     const formattedTime = dayjs(time).format("HH:mm:ss");
-
+  
     const selectedEmployee = names.find((name) => name.name === selectedName);
     const empId = selectedEmployee.emp_id;
-
+  
     const jsonData = {
       header: "app_exp",
       data: {
@@ -120,17 +123,28 @@ const AddExpense = () => {
         exp_upload: "", // This field is empty as it's not part of the form
       },
     };
-
+  
     try {
       const response = await axios.post(
         "https://workpanel.in/office_app/put_data/add_expense.php",
         jsonData
       );
-
+  
       if (response.data.success) {
         setAlertMessage("Expense added successfully! 🎉");
         setAlertSeverity("success");
-        
+  
+        // Add expense to context
+        addExpense({
+          id: Date.now(), // Generate a unique id for the expense
+          name: selectedName,
+          toSchool,
+          fromSchool,
+          selectedDate,
+          time,
+          amount,
+        });
+  
         // Reset form after success
         setName("");
         setToSchool("");
@@ -147,9 +161,9 @@ const AddExpense = () => {
       setAlertMessage("An error occurred. Please try again. 🤕");
       setAlertSeverity("error");
     }
-
+  
     setAlertVisible(true);
-
+  
     setTimeout(() => {
       setAlertVisible(false);
     }, 5000);
