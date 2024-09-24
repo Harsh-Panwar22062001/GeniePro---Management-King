@@ -131,10 +131,22 @@ const LeaveMaster = () => {
   };
 
   const handleEditClick = (leave) => {
+
+    console.log('Start Date:', leave.startDate);
+    console.log('End Date:', leave.endDate);
+
+    const startDate = new Date(leave.startDate);
+    const endDate = new Date(leave.endDate);
+  
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      console.error("Invalid start or end date");
+      return;
+    }
+  
     setEditingLeave({
       ...leave,
-      startDate: new Date(leave.startDate),
-      endDate: new Date(leave.endDate),
+      startDate,
+      endDate,
     });
     setEditDialogOpen(true);
   };
@@ -370,11 +382,20 @@ const LeaveMaster = () => {
       </DialogActions>
     </Dialog>
 
-    <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleSnackbarClose}>
-      <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
-        {snackbar.message}
-      </Alert>
-    </Snackbar>
+    <Snackbar
+  open={snackbar.open}
+  autoHideDuration={6000}
+  onClose={handleSnackbarClose}
+  anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+>
+  <Alert
+    onClose={handleSnackbarClose}
+    severity={snackbar.severity}
+    sx={{ width: '100%' }}
+  >
+    {snackbar.message}
+  </Alert>
+</Snackbar>
   </Box>
 );
 };

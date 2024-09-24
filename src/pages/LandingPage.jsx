@@ -21,6 +21,12 @@ import dayjs from 'dayjs';
 import { useMediaQuery } from '@mui/material';
 import { useTasks } from '../components/statemanagement/TaskContext';
 import { thoughtsList} from '..//assets/userdata';
+import utc from 'dayjs/plugin/utc';
+import { Link } from 'react-router-dom';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 
 
@@ -82,9 +88,7 @@ const NewsCard = styled(Card)(({ theme }) => ({
   boxShadow: theme.shadows[2],
   display: 'flex',
   flexDirection: 'column',
-
-  height: '100%', 
-  minHeight: '370px', 
+  height: '100%',
   transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
   '&:hover': {
     transform: 'translateY(-5px)',
@@ -93,8 +97,17 @@ const NewsCard = styled(Card)(({ theme }) => ({
 }));
 
 const NewsCardMedia = styled(CardMedia)({
-  height: 140,
+  height: 200, // Fixed height for all images
+  objectFit: 'cover',
 });
+
+const NewsCardContent = styled(CardContent)({
+  flexGrow: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
+});
+
 
 const ThoughtCard = styled(Card)(({ theme, bgcolor, textcolor }) => ({
   position: 'relative',
@@ -133,33 +146,34 @@ const Footer = styled(Box)(({ theme }) => ({
   marginTop: theme.spacing(4),
   padding: theme.spacing(2),
   textAlign: 'center',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  flexDirection: 'row',
-  flexWrap: 'wrap',
+  '& .footer-content': {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'nowrap',
+    whiteSpace: 'nowrap',
+    overflowX: 'auto',
+    '&::-webkit-scrollbar': {
+      display: 'none'
+    },
+    msOverflowStyle: 'none',
+    scrollbarWidth: 'none',
+  },
   '& .heart-icon': {
     fontSize: '16px',
     color: '#FF69B4',
     margin: '0 4px',
-    [theme.breakpoints.down('sm')]: {
-      fontSize: '1rem', 
-    }
+    verticalAlign: 'middle',
+    display: 'inline-flex',
   },
-  
-  '& .footer-text-container': {
-    [theme.breakpoints.down('sm')]: {
-      width: '100%', 
-      whiteSpace: 'nowrap', 
-     
-      fontSize: '1rem',
-      maxWidth:'100%',
-      textOverflow: 'ellipsis', 
+  '& .footer-text': {
+    fontSize: '0.9rem',
+    [theme.breakpoints.up('sm')]: {
+      fontSize: '0.7rem',
     },
-    
   },
   '& .footer-link': {
-    fontSize: '1rem',
+    fontSize: '0.9rem',
     fontWeight: 400,
     color: '#333',
     margin: '0 4px',
@@ -167,6 +181,9 @@ const Footer = styled(Box)(({ theme }) => ({
     transition: 'color 0.3s ease-in-out',
     '&:hover': {
       color: '#2196F3',
+    },
+    [theme.breakpoints.up('sm')]: {
+      fontSize: '1rem',
     },
   },
 }));
@@ -216,15 +233,55 @@ const WelcomePage = () => {
   
 
   const fetchNews = async () => {
+    const API_KEY = '5d03ea2ee3d51d0b75de4f6e1f5a49ff';
+    const API_BASE_URL = 'https://gnews.io/api/v4/search';
+  
     try {
-      const response = await axios.get('https://newsapi.org/v2/top-headlines?country=us&category=technology&apiKey=874bf0eeb9834ef68e013438bd204a16');
-      const newsData = response.data.articles;
-      const news = isMobile ? newsData.slice(0, 3) : newsData.slice(0, 8);
-      setNews(news.filter(item => item.title && item.description && item.urlToImage)); 
+      const response = await axios.get(API_BASE_URL, {
+        params: {
+          q: 'technology',      // Search query term (you can change this dynamically)
+          token: API_KEY,       // API key parameter for GNews
+          lang: 'en',           // Language of the news
+          country: 'in',        // Country code (India)
+          max: 100              // Limit to 100 articles
+        }
+      });
+  
+      console.log('API Response:', response.data);
+  
+      if (response.data && Array.isArray(response.data.articles)) {
+        const newsData = response.data.articles;
+  
+        // Filter news that have title, description, and image
+        const newsWithImages = newsData.filter(item =>
+          item.title && 
+          item.description && 
+          item.image && 
+          item.image.trim() !== '' // The 'image' field is used for news images in GNews API
+        );
+  
+        // Display limited number of news items depending on device (mobile or desktop)
+        const limitedNews = isMobile ? newsWithImages.slice(0, 3) : newsWithImages.slice(0, 8);
+  
+        setNews(limitedNews);  // Assuming you're storing the fetched news in state
+  
+        if (limitedNews.length === 0) {
+          console.warn('No news items with images found');
+        }
+      } else {
+        console.error('Unexpected API response structure:', response.data);
+        setNews([]);  // Clear the news if no valid data
+      }
     } catch (error) {
       console.error('Error fetching news:', error);
+      setNews([]);  // Handle the error by setting empty news
     }
   };
+  
+  const formatDate = (dateString) => {
+    return dayjs(dateString).tz('Asia/Kolkata').format('MMMM D, YYYY h:mm A');
+  };
+  
 
   return (
     <Box sx={{ flexGrow: 1, p: 3, mt: 4 }}>
@@ -272,19 +329,44 @@ const WelcomePage = () => {
       </Typography>
 
       {latestTask ? (
-        <Card sx={{ margin: '20px' , maxWidth:'50%' }}>
-          <CardContent>
-            <Typography variant="h5">Latest Task</Typography>
-            <Typography variant="body1"><strong>Task Name:</strong> {latestTask.name}</Typography>
-            <Typography variant="body1"><strong>Assigned To:</strong> {latestTask.assignedTo}</Typography>
-            <Typography variant="body1"><strong>Status:</strong> {latestTask.status}</Typography>
-          </CardContent>
-        </Card>
+        <Card sx={{ margin: '20px', maxWidth: isMobile ? '100%' : '50%' }}>
+        <CardContent>
+          <Typography variant="h5">Latest Task</Typography>
+          <Typography variant="body1"><strong>Task Name:</strong> {latestTask.name}</Typography>
+          <Typography variant="body1"><strong>Assigned To:</strong> {latestTask.assignedTo}</Typography>
+          <Typography variant="body1"><strong>Status:</strong> {latestTask.status}</Typography>
+        </CardContent>
+      </Card>
       ) : (
         <Typography variant="body1" sx={{ marginTop: '20px' }}>
           No tasks added yet.
         </Typography>
       )}
+
+
+
+
+<Grid item xs={12} md={4} mt={6} mb={4}>
+      <ThoughtCard 
+  bgcolor={thoughts[currentThoughtIndex].bg} 
+  textcolor={thoughts[currentThoughtIndex].text}
+>
+  <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', marginBottom: 2 }}>
+    Thought of the Day
+  </Typography>
+  <Typography variant="h6" sx={{ mb: 2,  lineHeight: 1.4 }}>
+    "{thoughts[currentThoughtIndex].quote}"
+  </Typography>
+  {thoughts[currentThoughtIndex].meaning && (
+    <Typography variant="body1" sx={{ mb: 2, fontStyle: 'normal', lineHeight: 1.4 }}>
+      {thoughts[currentThoughtIndex].meaning}
+    </Typography>
+  )}
+  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+    - {thoughts[currentThoughtIndex].author}
+  </Typography>
+</ThoughtCard>
+        </Grid>
 
       <Grid container spacing={3}>
         {/* Date and Time */}
@@ -359,76 +441,53 @@ const WelcomePage = () => {
     </LocalizationProvider>
   </StyledPaper>
 </Grid>
-        {/* Tech News */}
-        <Grid item xs={12} md={12}>
-          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-            Latest Tech News
-          </Typography>
-          <Grid container spacing={3}>
+         {/* Tech News */}
+      <Grid item xs={12} md={12}>
+        <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+          Latest Tech News
+        </Typography>
+        <Grid container spacing={3}>
           {news.map((item, index) => (
-  <Grid item xs={12} sm={6} md={3} key={index}>
-    <NewsCard>
-      {item.urlToImage ? (
-        <NewsCardMedia
-          component="img"
-          image={item.urlToImage}
-          alt="News Image"
-        />
-      ) : (
-        <NewsCardMedia
-          component="img"
-          image="https://via.placeholder.com/140x140" // default image
-          alt="News Image"
-        />
-      )}
-      <CardContent>
-        <Typography variant="subtitle1" component="h2" gutterBottom>
-          {item.title}
-        </Typography>
-        <Typography variant="body2" color="textSecondary">
-          {item.description}
-        </Typography>
-      </CardContent>
-    </NewsCard>
-  </Grid>
-))}
-          </Grid>
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <NewsCard>
+                <NewsCardMedia
+                  component="img"
+                  image={item.image}
+                  alt={item.title}
+                />
+                <NewsCardContent>
+                  <Typography variant="subtitle1" component="h2" gutterBottom>
+                    {item.title}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary" paragraph>
+                    {item.description}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary" paragraph>
+                    Published: {formatDate(item.published_at)}
+                  </Typography>
+                  <Link href={item.url} target="_blank" rel="noopener noreferrer">
+                    Read more
+                  </Link>
+                </NewsCardContent>
+              </NewsCard>
+            </Grid>
+          ))}
         </Grid>
+      </Grid>
 
        
       </Grid>
-      <Grid item xs={12} md={4} mt={6}>
-      <ThoughtCard 
-  bgcolor={thoughts[currentThoughtIndex].bg} 
-  textcolor={thoughts[currentThoughtIndex].text}
->
-  <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-    Thought of the Day
-  </Typography>
-  <Typography variant="h6" sx={{ mb: 2,  lineHeight: 1.4 }}>
-    "{thoughts[currentThoughtIndex].quote}"
-  </Typography>
-  {thoughts[currentThoughtIndex].meaning && (
-    <Typography variant="body1" sx={{ mb: 2, fontStyle: 'normal', lineHeight: 1.4 }}>
-      {thoughts[currentThoughtIndex].meaning}
-    </Typography>
-  )}
-  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-    - {thoughts[currentThoughtIndex].author}
-  </Typography>
-</ThoughtCard>
-        </Grid>
+      
         <Footer>
-  <Box className="footer-text-container">
-    <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      Crafted with <Heart className="heart-icon" size={16} /> by{' '}
-      <a href="https://www.driftdevelopers.com/" target="_blank" rel="noopener noreferrer" className="footer-link">
-        Drift Developers
-      </a>{' '}
-      ,
-      <span className="footer-text">Chandigarh</span>
-    </Typography>
-  </Box>
+        <Box className="footer-text-container">
+      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+        Crafted with <Heart className="heart-icon" /> by
+        <a href="https://www.driftdevelopers.com/" target="_blank" rel="noopener noreferrer" className="footer-link">
+          Drift Developers
+        </a>
+        , Chandigarh
+      </Typography>
+    </Box>
 </Footer>
     </Box>
   );

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Box,
   Button,
@@ -12,19 +13,17 @@ import {
   Container,
   Alert,
   IconButton,
-  FormHelperText
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import axios from "axios";
 import { useSelector } from "react-redux";
-import { addDays ,format } from "date-fns";
+import { differenceInDays , format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import { names } from '../../assets/userdata';
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
-import { names } from '../../assets/userdata';
-import { useLeaves } from '../../components/statemanagement/LeaveContext';
+import { useLeaves } from "../../components/statemanagement/LeaveContext";
 
 const FormWrapper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -52,6 +51,10 @@ const StyledButton = styled(Button)(({ theme }) => ({
     transform: "translateY(-2px)",
     boxShadow: "0 4px 10px rgba(0, 0, 0, 0.15)",
   },
+  "&:disabled": {
+    backgroundColor: theme.palette.grey[300],
+    color: theme.palette.grey[500],
+  },
 }));
 
 const StyledDatePicker = styled(DatePicker)(({ theme }) => ({
@@ -66,14 +69,14 @@ const StyledDatePicker = styled(DatePicker)(({ theme }) => ({
   },
 }));
 
-const StyledDatePickerContainer = styled('div')({
-  '& .react-datepicker-wrapper': {
-    width: '100%',
+const StyledDatePickerContainer = styled("div")({
+  "& .react-datepicker-wrapper": {
+    width: "100%",
   },
-  '& .react-datepicker': {
+  "& .react-datepicker": {
     zIndex: 1000,
   },
-  '& .react-datepicker-popper': {
+  "& .react-datepicker-popper": {
     zIndex: 1000,
   },
 });
@@ -89,130 +92,142 @@ const MotionBox = styled(motion.div)({
 });
 
 const PlannedLeave = () => {
-  const { user } = useSelector((state) => state.auth);
-  const { addLeaveRequest } = useLeaves(); 
-  const [selectedDate, setSelectedDate] = useState(null);
+  const { addLeaveRequest } = useLeaves();
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [numberOfDays, setNumberOfDays] = useState(0);
   const [reason, setReason] = useState("");
   const [selectedName, setSelectedName] = useState("");
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
-const [alertSeverity, setAlertSeverity] = useState("success");
-  const [errors, setErrors] = useState({
-    name: "",
-    date: "",
-    reason: ""
-  });
+  const [alertSeverity, setAlertSeverity] = useState("success");
+  const [formValid, setFormValid] = useState(false);
 
-  const handleDateChange = (date) => {
-    setSelectedDate(date);
-  };
+  useEffect(() => {
+    if (startDate && endDate) {
+      const days = differenceInDays(endDate, startDate) + 1;
+      setNumberOfDays(days);
+    } else {
+      setNumberOfDays(0);
+    }
+
+    // Validate the form
+    validateForm();
+  }, [startDate, endDate, reason, selectedName]);
 
   const validateForm = () => {
-    let isValid = true;
-    let newErrors = { name: "", date: "", reason: "" };
-
-    if (!selectedName) {
-      newErrors.name = "Please select a name";
-      isValid = false;
+    if (
+      selectedName && // Check if name is selected
+      startDate && // Check if start date is selected
+      endDate && // Check if end date is selected
+      reason.trim() !== "" && // Check if reason is provided
+      startDate <= endDate // Ensure start date is before or same as end date
+    ) {
+      setFormValid(true);
+    } else {
+      setFormValid(false);
     }
-
-    if (!selectedDate) {
-      newErrors.date = "Please select a date";
-      isValid = false;
-    }
-
-    if (!reason.trim()) {
-      newErrors.reason = "Please provide a reason for leave";
-      isValid = false;
-    } else if (reason.trim().length < 10) {
-      newErrors.reason = "Reason should be at least 10 characters long";
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
   };
 
+  const handleStartDateChange = (date) => {
+    setStartDate(date);
+    if (endDate && date > endDate) {
+      setEndDate(null);
+    }
+  };
 
-   const handleSubmit = async (e) => {
+  const handleEndDateChange = (date) => {
+    setEndDate(date);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (validateForm()) {
-      const formattedDate = selectedDate ? format(selectedDate, "dd/MM/yyyy") : "";
+    if (!formValid) return;
 
-      const jsonData = {
-        header: "app_leave",
-        data: {
-          leave_emp_id: "emp001", // You might want to replace this with actual employee ID
-          leave_strt_date: formattedDate,
-          leave_end_date: formattedDate, // For planned leave, start and end date are the same
-          leave_no_days: "1",
-          leave_reason: reason,
-          leave_file: "", // You might want to handle file upload separately
-          leave_type: "planned"
-        }
-      };
+    const formattedStartDate = startDate ? format(startDate, "dd/MM/yyyy") : "";
+    const formattedEndDate = endDate ? format(endDate, "dd/MM/yyyy") : "";
 
-      console.log("Sending data:", JSON.stringify(jsonData, null, 2));
 
+    const selectedEmployee = names.find((name) => name.name === selectedName);
+    const empId = selectedEmployee.emp_id;
+
+    const jsonData = {
+      header: "app_leave",
+      data: {
+        leave_emp_id: empId, // Replace with actual employee ID
+        leave_strt_date: formattedStartDate,
+        leave_end_date: formattedEndDate,
+        leave_no_days: numberOfDays.toString(),
+        leave_reason: reason,
+        leave_file: "", // You might want to handle file upload separately
+        leave_type: "urgent"
+      }
+    };
+
+    console.log("Sending data:", JSON.stringify(jsonData, null, 2));
+
+    try {
+      const response = await axios.post('https://workpanel.in/office_app/put_data/apply_leave.php', jsonData);
+      
+      console.log("Raw server response:", response.data);
+
+      // Extract JSON from the response
+      const jsonStartIndex = response.data.indexOf('{');
+      const jsonEndIndex = response.data.lastIndexOf('}') + 1;
+      const jsonString = response.data.slice(jsonStartIndex, jsonEndIndex);
+
+      let parsedData;
       try {
-        const response = await axios.post('https://workpanel.in/office_app/put_data/apply_leave.php', jsonData);
-
-        console.log("Raw server response:", response.data);
-
-        // Extract JSON from the response
-        const jsonStartIndex = response.data.indexOf('{');
-        const jsonEndIndex = response.data.lastIndexOf('}') + 1;
-        const jsonString = response.data.slice(jsonStartIndex, jsonEndIndex);
-
-        let parsedData;
-        try {
-          parsedData = JSON.parse(jsonString);
-        } catch (error) {
-          console.error("Error parsing response data:", error);
-          parsedData = { success: false, msg: "Error parsing server response" };
-        }
-
-        console.log("Parsed server response:", parsedData);
-        
-        if (parsedData.success && parsedData.msg === '1') {
-          setAlertMessage("Leave applied successfully!");
-          setAlertSeverity("success");
-          
-          addLeaveRequest({
-            name: selectedName,
-            startDate: selectedDate ? selectedDate.toDateString() : "",
-            reason: reason,
-            leaveType: "Planned",
-            numberOfDays: 1,
-            status: "Pending",
-          });
-
-          // Reset form
-          setSelectedName("");
-          setSelectedDate(null);
-          setReason("");
-        } else {
-          setAlertMessage(`Failed to apply leave. Please try again. Server response: ${JSON.stringify(parsedData)}`);
-          setAlertSeverity("error");
-        }
+        parsedData = JSON.parse(jsonString);
       } catch (error) {
-        console.error("Error applying leave:", error);
-        setAlertMessage(`An error occurred. Please try again. Error: ${error.message}`);
-        setAlertSeverity("error");
+        console.error("Error parsing response data:", error);
+        parsedData = { success: false, msg: "Error parsing server response" };
       }
 
-      setAlertVisible(true);
+      console.log("Parsed server response:", parsedData);
 
-      setTimeout(() => {
-        setAlertVisible(false);
-      }, 5000); // Increased to 5 seconds for better visibility
+      if (parsedData.success === true && parsedData.msg === "1") {
+        setAlertMessage("Planned leave applied successfully!");
+        setAlertSeverity("success");
+        
+        addLeaveRequest({
+          name: selectedName,
+          startDate: startDate ? startDate.toDateString() : "",
+          endDate: endDate ? endDate.toDateString() : "",
+          numberOfDays,
+          reason,
+          leaveType: "Planned",
+          status: "Pending",
+        });
+
+        // Reset form
+        setSelectedName("");
+        setStartDate(null);
+        setEndDate(null);
+        setReason("");
+        setNumberOfDays(0);
+      } else {
+        setAlertMessage(`Failed to apply leave. Please try again. Server response: ${JSON.stringify(parsedData)}`);
+        setAlertSeverity("error");
+      }
+    } catch (error) {
+      console.error("Error applying leave:", error);
+      setAlertMessage(`An error occurred. Please try again. Error: ${error.message}`);
+      setAlertSeverity("error");
     }
+
+    setAlertVisible(true);
+
+    setTimeout(() => {
+      setAlertVisible(false);
+    }, 5000);
   };
 
-  const isFutureDate = (date) => {
-    return date > new Date();
-  };
+  const namesList = names.map((name) => (
+    <MenuItem key={name} value={name}>
+      {name}
+    </MenuItem>
+  ));
 
 
   return (
@@ -223,12 +238,18 @@ const [alertSeverity, setAlertSeverity] = useState("success");
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Typography variant="h4" mb={4} align="center" fontWeight="bold" color="primary">
+          <Typography
+            variant="h4"
+            mb={4}
+            align="center"
+            fontWeight="bold"
+            color="primary"
+          >
             Apply for Planned Leave
           </Typography>
 
           <Box component="form" onSubmit={handleSubmit}>
-            <FormControl fullWidth margin="normal" error={!!errors.name}>
+            <FormControl fullWidth margin="normal">
               <InputLabel id="name-select-label">Name</InputLabel>
               <StyledSelect
   labelId="name-select-label"
@@ -242,22 +263,48 @@ const [alertSeverity, setAlertSeverity] = useState("success");
     </MenuItem>
   ))}
 </StyledSelect>
-              {errors.name && <FormHelperText>{errors.name}</FormHelperText>}
             </FormControl>
 
             <StyledDatePickerContainer>
-              <FormControl fullWidth margin="normal" error={!!errors.date}>
-                <StyledDatePicker
-                  selected={selectedDate}
-                  onChange={handleDateChange}
-                  dateFormat="MMMM d, yyyy"
-                  filterDate={isFutureDate}
-                  placeholderText="Select a future date"
-                  minDate={addDays(new Date(), 1)}
-                />
-                {errors.date && <FormHelperText>{errors.date}</FormHelperText>}
-              </FormControl>
-            </StyledDatePickerContainer>
+  <FormControl fullWidth margin="normal">
+    <StyledDatePicker
+      selected={startDate}
+      onChange={handleStartDateChange}
+      selectsStart
+      startDate={startDate}
+      endDate={endDate}
+      minDate={new Date(Date.now() + 86400000)} // Add 1 day to today's date
+      dateFormat="MMMM d, yyyy"
+      placeholderText="Start Date"
+    />
+  </FormControl>
+</StyledDatePickerContainer>
+
+<StyledDatePickerContainer>
+  <FormControl fullWidth margin="normal">
+    <StyledDatePicker
+      selected={endDate}
+      onChange={handleEndDateChange}
+      selectsEnd
+      startDate={startDate}
+      endDate={endDate}
+      minDate={startDate ? startDate : new Date(Date.now() + 86400000)} // Ensure end date is after start date or today's date
+      dateFormat="MMMM d, yyyy"
+      placeholderText="End Date"
+    />
+  </FormControl>
+</StyledDatePickerContainer>
+
+            <TextField
+              label="Number of Days"
+              fullWidth
+              margin="normal"
+              variant="outlined"
+              value={numberOfDays}
+              InputProps={{
+                readOnly: true,
+              }}
+            />
 
             <TextField
               label="Reason for Leave Application"
@@ -268,8 +315,6 @@ const [alertSeverity, setAlertSeverity] = useState("success");
               variant="outlined"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              error={!!errors.reason}
-              helperText={errors.reason}
             />
 
             <Box mt={4} display="flex" justifyContent="center">
@@ -279,54 +324,47 @@ const [alertSeverity, setAlertSeverity] = useState("success");
                 component={motion.button}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                disabled={!formValid} // Disable button if form is not valid
               >
-                Apply for Leave
+                Apply for Planned Leave
               </StyledButton>
             </Box>
-
-            <AnimatePresence>
-              {alertVisible && (
-                <MotionBox
-                  initial={{ opacity: 0, y: -50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -50 }}
-                  transition={{ duration: 0.5 }}
-                >
-                 <Alert
-  severity={alertSeverity}
-  icon={<CheckCircleOutlineIcon fontSize="inherit" />}
-  action={
-    <IconButton
-      aria-label="close"
-      color="inherit"
-      size="small"
-      onClick={() => setAlertVisible(false)}
-    >
-      <CloseIcon fontSize="inherit" />
-    </IconButton>
-  }
-  sx={{
-    background: alertSeverity === "success" 
-      ? "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)"
-      : "linear-gradient(45deg, #f44336 30%, #ff9800 90%)",
-    color: "white",
-    "& .MuiAlert-icon": {
-      color: "white",
-    },
-    "& .MuiIconButton-root": {
-      color: "white",
-    },
-    boxShadow: "0 3px 5px 2px rgba(76, 175, 80, .3)",
-    borderRadius: "8px",
-    marginTop: "16px",
-  }}
->
-  {alertMessage}
-</Alert>
-                </MotionBox>
-              )}
-            </AnimatePresence>
           </Box>
+
+          <AnimatePresence>
+            {alertVisible && (
+              <Alert
+                severity={alertSeverity}
+                icon={<CheckCircleOutlineIcon fontSize="inherit" />}
+                action={
+                  <IconButton
+                    aria-label="close"
+                    color="inherit"
+                    size="small"
+                    onClick={() => setAlertVisible(false)}
+                  >
+                    <CloseIcon fontSize="inherit" />
+                  </IconButton>
+                }
+                sx={{
+                  background: alertSeverity === "success"
+                    ? "linear-gradient(45deg, #4caf50 30%, #2196f3 90%)"
+                    : "linear-gradient(45deg, #f44336 30%, #ff9800 90%)",
+                  color: "white",
+                  "& .MuiAlert-icon": {
+                    color: "white",
+                  },
+                }}
+                component={motion.div}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {alertMessage}
+              </Alert>
+            )}
+          </AnimatePresence>
         </MotionBox>
       </FormWrapper>
     </Container>
