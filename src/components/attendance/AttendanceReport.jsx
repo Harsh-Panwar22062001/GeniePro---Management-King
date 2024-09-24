@@ -23,6 +23,7 @@ import { differenceInDays } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
+import { names } from '../../assets/userdata';
 import { useAttendance } from '../../components/statemanagement/AttendanceContext';
 
 const FormWrapper = styled(Paper)(({ theme }) => ({
@@ -191,7 +192,7 @@ const AttendanceReport = () => {
     }
   };
 
-  const names = ["John Doe", "Jane Smith", "Michael Johnson", "Emily Brown", "David Wilson"];
+ 
 
   return (
     <Container maxWidth="sm">
@@ -206,25 +207,29 @@ const AttendanceReport = () => {
           </Typography>
 
           <Box component="form" onSubmit={handleSubmit}>
-            <FormControl fullWidth margin="normal" error={!!errors.name}>
-              <InputLabel id="name-select-label">Name</InputLabel>
-              <StyledSelect
-                labelId="name-select-label"
-                value={selectedName}
-                onChange={(e) => {
-                  setSelectedName(e.target.value);
-                  validateField("name", e.target.value);
-                }}
-                label="Name"
-              >
-                {names.map((name) => (
-                  <MenuItem key={name} value={name}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </StyledSelect>
-              {errors.name && <FormHelperText>{errors.name}</FormHelperText>}
-            </FormControl>
+           
+
+
+           
+          <FormControl fullWidth margin="normal" error={!!errors.name}>
+            <InputLabel id="name-select-label">Name</InputLabel>
+            <StyledSelect
+              labelId="name-select-label"
+              value={selectedName}
+              onChange={(e) => {
+                setSelectedName(e.target.value);
+                validateField("name", e.target.value);
+              }}
+              label="Name"
+            >
+              {names.map((name) => (
+                <MenuItem key={name.emp_id} value={name.name}>
+                  {name.name}
+                </MenuItem>
+              ))}
+            </StyledSelect>
+            {errors.name && <FormHelperText>{errors.name}</FormHelperText>}
+          </FormControl>
 
             <StyledDatePickerContainer>
               <FormControl fullWidth margin="normal" error={!!errors.startDate}>

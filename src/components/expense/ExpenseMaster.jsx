@@ -68,8 +68,8 @@ const ExpenseMaster = () => {
                   <strong>From:</strong> {expense.fromSchool}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  <strong>Time:</strong> {expense.time?.format('HH:mm')}
-                </Typography>
+  <strong>Time:</strong> {dayjs(expense.time, 'HH:mm').format('HH:mm')}
+</Typography>
               </CardContent>
               <IconButton
                 aria-label="edit"

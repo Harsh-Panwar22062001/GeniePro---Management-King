@@ -14,7 +14,7 @@ import {
   Tooltip,
   styled,
   useTheme,
-  TextField
+  TextField,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -111,15 +111,25 @@ const TaskMaster = () => {
   };
 
   return (
-    <Box p={4} sx={{ backgroundColor: "#f5f5f5", minHeight: "100vh", marginTop: "30px" }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+    <Box
+      p={4}
+      sx={{ backgroundColor: "#f5f5f5", minHeight: "100vh", marginTop: "30px" }}
+    >
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={4}
+      >
         <StyledTextField
           variant="outlined"
           placeholder="Search tasks..."
           value={searchTerm}
           onChange={handleSearch}
           InputProps={{
-            startAdornment: <SearchIcon sx={{ color: "action.active", mr: 1 }} />,
+            startAdornment: (
+              <SearchIcon sx={{ color: "action.active", mr: 1 }} />
+            ),
           }}
           sx={{
             flex: 1,
@@ -128,13 +138,20 @@ const TaskMaster = () => {
             borderRadius: "4px",
           }}
         />
-        <StyledButton variant="contained" startIcon={<AddIcon />} component={Link} to="/add-task">
+        <StyledButton
+          variant="contained"
+          startIcon={<AddIcon />}
+          component={Link}
+          to="/add-task"
+        >
           Add Task
         </StyledButton>
       </Box>
       <Grid container spacing={3}>
         {tasks
-          .filter((task) => task.name.toLowerCase().includes(searchTerm.toLowerCase()))
+          .filter((task) =>
+            task.name.toLowerCase().includes(searchTerm.toLowerCase())
+          )
           .map((task) => (
             <Grid item xs={12} sm={6} md={4} key={task.id}>
               <motion.div
@@ -149,17 +166,29 @@ const TaskMaster = () => {
                   />
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Box display="flex" alignItems="center" mb={1}>
-                      <EventIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                      <EventIcon
+                        fontSize="small"
+                        color="action"
+                        sx={{ mr: 1 }}
+                      />
                       <Typography variant="body2">
                         {new Date(task.endDate).toLocaleDateString()}
                       </Typography>
                     </Box>
                     <Box display="flex" alignItems="center" mb={1}>
-                      <PersonIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                      <PersonIcon
+                        fontSize="small"
+                        color="action"
+                        sx={{ mr: 1 }}
+                      />
                       <Typography variant="body2">{task.assignedTo}</Typography>
                     </Box>
                     <Box display="flex" alignItems="center" mb={1}>
-                      <CommentIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                      <CommentIcon
+                        fontSize="small"
+                        color="action"
+                        sx={{ mr: 1 }}
+                      />
                       <Typography variant="body2" noWrap>
                         {task.latestRemark || "No remarks"}
                       </Typography>
@@ -177,7 +206,12 @@ const TaskMaster = () => {
                             : "success"
                         }
                       />
-                      <Chip icon={<StarIcon />} label={`${task.points} pts`} size="small" color="primary" />
+                      <Chip
+                        icon={<StarIcon />}
+                        label={`${task.points} pts`}
+                        size="small"
+                        color="primary"
+                      />
                       <Chip
                         label={task.status}
                         size="small"
@@ -188,13 +222,32 @@ const TaskMaster = () => {
                       />
                     </Box>
                     {task.imageUrls && task.imageUrls.length > 0 && (
-                      <Box sx={{ mt: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      <Box
+                        sx={{
+                          mt: 2,
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 1,
+                        }}
+                      >
                         {task.imageUrls.map((url, index) => (
-                          <Box key={index} sx={{ width: 100, height: 100, overflow: "hidden", borderRadius: 1 }}>
+                          <Box
+                            key={index}
+                            sx={{
+                              width: 100,
+                              height: 100,
+                              overflow: "hidden",
+                              borderRadius: 1,
+                            }}
+                          >
                             <img
                               src={url}
                               alt={`Task Image ${index}`}
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
                             />
                           </Box>
                         ))}
@@ -203,7 +256,11 @@ const TaskMaster = () => {
                   </CardContent>
                   <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
                     <Tooltip title="Download Screenshot">
-                      <IconButton color="primary" size="small" onClick={() => handleDownload(task.id)}>
+                      <IconButton
+                        color="primary"
+                        size="small"
+                        onClick={() => handleDownload(task.id)}
+                      >
                         <DownloadIcon />
                       </IconButton>
                     </Tooltip>

@@ -83,8 +83,8 @@ const NewsCard = styled(Card)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
 
-  height: '100%', // Ensures the card takes full height of the grid item
-  minHeight: '370px', // Set a minimum height for the card
+  height: '100%', 
+  minHeight: '370px', 
   transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
   '&:hover': {
     transform: 'translateY(-5px)',
@@ -103,8 +103,8 @@ const ThoughtCard = styled(Card)(({ theme, bgcolor, textcolor }) => ({
   boxShadow: theme.shadows[4],
   padding: theme.spacing(3),
   textAlign: 'center',
-  color: textcolor, // Use the text color from the thoughts array
-  background: bgcolor, // Use the background from the thoughts array
+  color: textcolor, 
+  background: bgcolor, 
   transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
   '&:hover': {
     transform: 'translateY(-5px)',
@@ -143,18 +143,18 @@ const Footer = styled(Box)(({ theme }) => ({
     color: '#FF69B4',
     margin: '0 4px',
     [theme.breakpoints.down('sm')]: {
-      fontSize: '1rem', // Set a larger font size for mobile screens
+      fontSize: '1rem', 
     }
   },
   
   '& .footer-text-container': {
     [theme.breakpoints.down('sm')]: {
-      width: '100%', // Set a fixed width for mobile screens
-      whiteSpace: 'nowrap', // Prevent text from wrapping to the next line
-     // Hide any overflowing text
+      width: '100%', 
+      whiteSpace: 'nowrap', 
+     
       fontSize: '1rem',
       maxWidth:'100%',
-      textOverflow: 'ellipsis', // Add an ellipsis to indicate truncated text
+      textOverflow: 'ellipsis', 
     },
     
   },
@@ -220,7 +220,7 @@ const WelcomePage = () => {
       const response = await axios.get('https://newsapi.org/v2/top-headlines?country=us&category=technology&apiKey=874bf0eeb9834ef68e013438bd204a16');
       const newsData = response.data.articles;
       const news = isMobile ? newsData.slice(0, 3) : newsData.slice(0, 8);
-      setNews(news.filter(item => item.title && item.description && item.urlToImage)); // filter out deleted news articles
+      setNews(news.filter(item => item.title && item.description && item.urlToImage)); 
     } catch (error) {
       console.error('Error fetching news:', error);
     }

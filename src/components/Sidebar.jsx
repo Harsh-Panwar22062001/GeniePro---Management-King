@@ -34,7 +34,7 @@ const StyledSidebar = styled(Box)(({ theme }) => ({
 
 const StyledListItem = styled(ListItem)(({ theme, active }) => ({
   borderRadius: theme.shape.borderRadius,
-  marginBottom: theme.spacing(0.5),
+  marginBottom: theme.spacing(0.2),
   "&:hover": {
     backgroundColor: theme.palette.action.hover,
   },
@@ -209,7 +209,7 @@ const Sidebar = ({ open, toggleSidebar,  onCloseSidebar }) => {
         ))}
       </List>
 
-      <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, p: 2, borderTop: 1, borderColor: "divider" }}>
+      <Box sx={{ position: "absolute", bottom: -70, left: 0, right: 0, p: 2, borderTop: -1, borderColor: "divider" }}>
         <StyledListItem  button component={Link} to="/settings"   onClick={closeSidebar}>
           <ListItemIcon>
             <MdSettings />

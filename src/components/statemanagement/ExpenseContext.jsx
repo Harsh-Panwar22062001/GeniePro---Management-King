@@ -1,12 +1,19 @@
-// LeaveContext.jsx
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 
 const ExpenseContext = createContext();
 
 export const ExpenseProvider = ({ children }) => {
-  const [expenses, setExpenses] = useState([]);
+  const [expenses, setExpenses] = useState(() => {
+    const storedExpenses = localStorage.getItem('expenses');
+    return storedExpenses ? JSON.parse(storedExpenses) : [];
+  });
+
   const isMobile = useSelector((state) => state.ui?.isMobile);
+
+  useEffect(() => {
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+  }, [expenses]);
 
   const addExpense = (newExpense) => {
     setExpenses((prevExpenses) => [...prevExpenses, { ...newExpense, id: Date.now() }]);
@@ -18,7 +25,7 @@ export const ExpenseProvider = ({ children }) => {
         if (expense.id === updatedExpense.exp_id) {
           return {
             ...expense,
-            name: updatedExpense.exp_emp_id,
+            name: updatedExpense.exp_emp_name, // Use the employee name here
             toSchool: updatedExpense.exp_to,
             fromSchool: updatedExpense.exp_from,
             selectedDate: updatedExpense.exp_date,
