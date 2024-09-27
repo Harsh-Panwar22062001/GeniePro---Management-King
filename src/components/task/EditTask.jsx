@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { Button, TextField, Typography, Box, Card, CardContent, FormControl, InputLabel, Select, MenuItem, Container, Grid, Paper ,Alert } from "@mui/material";
+import { Button, TextField, Typography, Box, Card, CardContent, FormControl, InputLabel, Select, MenuItem, Container, Grid, Paper, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { styled } from "@mui/system";
 import { keyframes } from "@mui/system";
 import { useTasks } from '../../components/statemanagement/TaskContext';
 import { AutoAwesome, CalendarToday, Person, Flag, Star } from '@mui/icons-material';
 import axios from 'axios';
 import moment from 'moment';
-
+import { names, projects, prioritySelect } from '../../assets/userdata';
 
 // Define animations
 const fadeIn = keyframes`
@@ -47,22 +47,22 @@ const IconWrapper = styled(Box)(({ theme }) => ({
   },
 }));
 
-const SaveButton = styled(Button)(({ theme }) => ({
-  marginTop: theme.spacing(3),
-  animation: `${pulse} 2s infinite`,
-}));
-
 const EditTask = () => {
   const { tasks, updateTask } = useTasks();
   const [selectedTask, setSelectedTask] = useState(null);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
-  const [alertSeverity, setAlertSeverity] = useState("success"); 
+  const [alertSeverity, setAlertSeverity] = useState("success");
+  const [openDialog, setOpenDialog] = useState(false);
 
-  const handleSelectTask = (event) => {
-    const taskId = event.target.value;
-    const task = tasks.find(t => t.id === parseInt(taskId));
+  const handleOpenDialog = (task) => {
     setSelectedTask(task);
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setSelectedTask(null);
   };
 
   const handleFieldChange = (field) => (event) => {
@@ -73,12 +73,9 @@ const EditTask = () => {
   };
 
   const handleSubmit = async () => {
-
-
-
-    
     if (selectedTask) {
       try {
+        const assignedEmployee = names.find(emp => emp.emp_id === selectedTask.assignedTo);
         const jsonData = {
           header: "app_task_edit",
           data: {
@@ -94,76 +91,35 @@ const EditTask = () => {
           }
         };
 
-        console.log("Sending data:", JSON.stringify(jsonData, null, 2));
-  
-        console.log("Sending data to API:", jsonData);
-  
         const response = await axios.post('https://workpanel.in/office_app/update_data/edit_task.php', jsonData);
 
-      
-  
-        console.log("API Response:", response.data);
-  
         if (response.data.success === true) {
-          updateTask(selectedTask);
+          updateTask({...selectedTask, assignedTo: assignedEmployee.name});
           setAlertMessage("Task updated successfully!");
           setAlertSeverity("success");
+          handleCloseDialog();
         } else {
           setAlertMessage(`Failed to Edit task. Server response: ${JSON.stringify(response.data)}`);
           setAlertSeverity("error");
         }
       } catch (error) {
         console.error("Error updating task:", error);
-        if (error.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
-          console.error("Error response data:", error.response.data);
-          console.error("Error response status:", error.response.status);
-          console.error("Error response headers:", error.response.headers);
-          setAlertMessage(`Server error: ${error.response.data.message || error.response.statusText}`);
-        } else if (error.request) {
-          // The request was made but no response was received
-          console.error("Error request:", error.request);
-          setAlertMessage("No response received from server. Please try again.");
-        } else {
-          // Something happened in setting up the request that triggered an Error
-          console.error("Error message:", error.message);
-          setAlertMessage(`An error occurred: ${error.message}`);
-        }
+        setAlertMessage(`An error occurred: ${error.message}`);
         setAlertSeverity("error");
       }
-  
+
       setAlertVisible(true);
-      setTimeout(() => setAlertVisible(false), 5000); // Increased to 5 seconds for better visibility
-      setSelectedTask(null);
+      setTimeout(() => setAlertVisible(false), 5000);
     }
   };
 
   return (
     <Container maxWidth="lg" sx={{ marginTop: '30px' }}>
-
       <Box py={5}>
-       
-        
         <StyledPaper elevation={3}>
           <Typography variant="h4" gutterBottom color="secondary">
-            Edit Task
+            Tasks
           </Typography>
-          <FormControl fullWidth variant="outlined">
-            <InputLabel id="select-task-label">Select Task</InputLabel>
-            <Select
-              labelId="select-task-label"
-              value={selectedTask ? selectedTask.id : ""}
-              onChange={handleSelectTask}
-              label="Select Task"
-            >
-              {tasks.map(task => (
-                <MenuItem key={task.id} value={task.id}>{task.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-
 
           {alertVisible && (
             <Alert severity={alertSeverity} sx={{ mb: 2, mt: 2 }}>
@@ -171,98 +127,6 @@ const EditTask = () => {
             </Alert>
           )}
 
-          {selectedTask && (
-            <Box mt={3}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Task Name"
-                    value={selectedTask.name}
-                    onChange={handleFieldChange('name')}
-                    fullWidth
-                    variant="outlined"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="project-name-label">Project Name</InputLabel>
-                    <Select
-                      labelId="project-name-label"
-                      value={selectedTask.projectName}
-                      onChange={handleFieldChange('projectName')}
-                      label="Project Name"
-                    >
-                      <MenuItem value="Project A">Project A</MenuItem>
-                      <MenuItem value="Project B">Project B</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Created Date"
-                    type="date"
-                    value={selectedTask.createdDate}
-                    onChange={handleFieldChange('createdDate')}
-                    fullWidth
-                    variant="outlined"
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="End Date"
-                    type="date"
-                    value={selectedTask.endDate}
-                    onChange={handleFieldChange('endDate')}
-                    fullWidth
-                    variant="outlined"
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="assigned-to-label">Assigned To</InputLabel>
-                    <Select
-                      labelId="assigned-to-label"
-                      value={selectedTask.assignedTo}
-                      onChange={handleFieldChange('assignedTo')}
-                      label="Assigned To"
-                    >
-                      <MenuItem value="User A">User A</MenuItem>
-                      <MenuItem value="User B">User B</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Priority"
-                    value={selectedTask.priority}
-                    onChange={handleFieldChange('priority')}
-                    fullWidth
-                    variant="outlined"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Points"
-                    value={selectedTask.points}
-                    onChange={handleFieldChange('points')}
-                    fullWidth
-                    variant="outlined"
-                  />
-                </Grid>
-              </Grid>
-              <SaveButton onClick={handleSubmit} variant="contained" color="primary" size="large" fullWidth>
-                Save Changes
-              </SaveButton>
-            </Box>
-          )}
-        </StyledPaper>
-
-        <Box mt={5}>
-          <Typography variant="h4" gutterBottom color="secondary">
-            All Tasks
-          </Typography>
           <Grid container spacing={3}>
             {tasks.map(task => (
               <Grid item xs={12} sm={6} md={4} key={task.id}>
@@ -297,7 +161,7 @@ const EditTask = () => {
                       variant="outlined"
                       color="secondary"
                       fullWidth
-                      onClick={() => setSelectedTask(task)}
+                      onClick={() => handleOpenDialog(task)}
                       sx={{ mt: 2 }}
                     >
                       Edit Task
@@ -307,8 +171,98 @@ const EditTask = () => {
               </Grid>
             ))}
           </Grid>
-        </Box>
+        </StyledPaper>
       </Box>
+
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Task</DialogTitle>
+        <DialogContent>
+          {selectedTask && (
+            <Box sx={{ mt: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Task Name"
+                    value={selectedTask.name}
+                    onChange={handleFieldChange('name')}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel id="assigned-to-label">Assigned To</InputLabel>
+                    <Select
+                      labelId="assigned-to-label"
+                      value={selectedTask.assignedTo}
+                      onChange={handleFieldChange('assignedTo')}
+                      label="Assigned To"
+                    >
+                      {names.map(name => (
+                        <MenuItem key={name.emp_id} value={name.emp_id}>{name.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Created Date"
+                    type="date"
+                    value={selectedTask.createdDate}
+                    onChange={handleFieldChange('createdDate')}
+                    fullWidth
+                    variant="outlined"
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="End Date"
+                    type="date"
+                    value={selectedTask.endDate}
+                    onChange={handleFieldChange('endDate')}
+                    fullWidth
+                    variant="outlined"
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel id="priority-label">Priority</InputLabel>
+                    <Select
+                      labelId="priority-label"
+                      value={selectedTask.priority}
+                      onChange={handleFieldChange('priority')}
+                      label="Priority"
+                    >
+                      {prioritySelect.map(priority => (
+                        <MenuItem key={priority} value={priority}>{priority}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Points"
+                    value={selectedTask.points}
+                    onChange={handleFieldChange('points')}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} color="primary" variant="contained">
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
-  TextField,
   Typography,
   MenuItem,
   Select,
@@ -19,9 +18,7 @@ import { styled } from "@mui/material/styles";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSelector } from "react-redux";
-import { differenceInDays } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import { names } from '../../assets/userdata';
 import { useAttendance } from '../../components/statemanagement/AttendanceContext';
@@ -89,52 +86,27 @@ const MotionBox = styled(motion.div)({
 });
 
 const AttendanceReport = () => {
-  const { user } = useSelector((state) => state.auth);
   const { addAttendanceRecord } = useAttendance();
+  const [selectedName, setSelectedName] = useState("");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-  const [numberOfDays, setNumberOfDays] = useState(0);
-  const [reason, setReason] = useState("");
-  const [selectedName, setSelectedName] = useState("");
-  const [alertVisible, setAlertVisible] = useState(false); 
-  const [isFormValid, setIsFormValid] = useState(false); // Track form validity
+  const [attendanceStatus, setAttendanceStatus] = useState("");
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const [errors, setErrors] = useState({
     name: "",
     startDate: "",
     endDate: "",
-    reason: "",
+    attendanceStatus: "",
   });
 
   useEffect(() => {
-    if (startDate && endDate) {
-      const days = differenceInDays(endDate, startDate) + 1;
-      setNumberOfDays(days);
-    } else {
-      setNumberOfDays(0);
-    }
-  }, [startDate, endDate]);
-
-  useEffect(() => {
-    // Check if the form is valid by ensuring all fields are filled and no errors exist
     const isValid = 
-      selectedName && startDate && endDate && reason && 
+      selectedName && startDate && endDate && attendanceStatus && 
       !Object.values(errors).some(error => error !== "");
     setIsFormValid(isValid);
-  }, [selectedName, startDate, endDate, reason, errors]);
-
-  const handleStartDateChange = (date) => {
-    setStartDate(date);
-    if (endDate && date > endDate) {
-      setEndDate(null);
-    }
-    validateField("startDate", date);
-  };
-
-  const handleEndDateChange = (date) => {
-    setEndDate(date);
-    validateField("endDate", date);
-  };
+  }, [selectedName, startDate, endDate, attendanceStatus, errors]);
 
   const validateField = (field, value) => {
     let errorMessage = "";
@@ -152,8 +124,8 @@ const AttendanceReport = () => {
           errorMessage = "End date must be after start date";
         }
         break;
-      case "reason":
-        if (!value.trim()) errorMessage = "Reason is required";
+      case "attendanceStatus":
+        if (!value) errorMessage = "Attendance status is required";
         break;
       default:
         break;
@@ -164,7 +136,6 @@ const AttendanceReport = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Check if there are any errors
     const hasErrors = Object.values(errors).some(error => error !== "");
     
     if (!hasErrors) {
@@ -172,8 +143,7 @@ const AttendanceReport = () => {
         name: selectedName,
         startDate: startDate ? startDate.toDateString() : "",
         endDate: endDate ? endDate.toDateString() : "",
-        numberOfDays,
-        reason,
+        attendanceStatus,
       };
       addAttendanceRecord(newAttendanceRecord);
       
@@ -187,12 +157,9 @@ const AttendanceReport = () => {
       setSelectedName("");
       setStartDate(null);
       setEndDate(null);
-      setReason("");
-      setNumberOfDays(0);
+      setAttendanceStatus("");
     }
   };
-
- 
 
   return (
     <Container maxWidth="sm">
@@ -207,35 +174,34 @@ const AttendanceReport = () => {
           </Typography>
 
           <Box component="form" onSubmit={handleSubmit}>
-           
-
-
-           
-          <FormControl fullWidth margin="normal" error={!!errors.name}>
-            <InputLabel id="name-select-label">Name</InputLabel>
-            <StyledSelect
-              labelId="name-select-label"
-              value={selectedName}
-              onChange={(e) => {
-                setSelectedName(e.target.value);
-                validateField("name", e.target.value);
-              }}
-              label="Name"
-            >
-              {names.map((name) => (
-                <MenuItem key={name.emp_id} value={name.name}>
-                  {name.name}
-                </MenuItem>
-              ))}
-            </StyledSelect>
-            {errors.name && <FormHelperText>{errors.name}</FormHelperText>}
-          </FormControl>
+            <FormControl fullWidth margin="normal" error={!!errors.name}>
+              <InputLabel id="name-select-label">Name</InputLabel>
+              <StyledSelect
+                labelId="name-select-label"
+                value={selectedName}
+                onChange={(e) => {
+                  setSelectedName(e.target.value);
+                  validateField("name", e.target.value);
+                }}
+                label="Name"
+              >
+                {names.map((name) => (
+                  <MenuItem key={name.emp_id} value={name.name}>
+                    {name.name}
+                  </MenuItem>
+                ))}
+              </StyledSelect>
+              {errors.name && <FormHelperText>{errors.name}</FormHelperText>}
+            </FormControl>
 
             <StyledDatePickerContainer>
               <FormControl fullWidth margin="normal" error={!!errors.startDate}>
                 <StyledDatePicker
                   selected={startDate}
-                  onChange={handleStartDateChange}
+                  onChange={(date) => {
+                    setStartDate(date);
+                    validateField("startDate", date);
+                  }}
                   selectsStart
                   startDate={startDate}
                   endDate={endDate}
@@ -250,7 +216,10 @@ const AttendanceReport = () => {
               <FormControl fullWidth margin="normal" error={!!errors.endDate}>
                 <StyledDatePicker
                   selected={endDate}
-                  onChange={handleEndDateChange}
+                  onChange={(date) => {
+                    setEndDate(date);
+                    validateField("endDate", date);
+                  }}
                   selectsEnd
                   startDate={startDate}
                   endDate={endDate}
@@ -262,20 +231,22 @@ const AttendanceReport = () => {
               </FormControl>
             </StyledDatePickerContainer>
 
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Reason for leave"
-              value={reason}
-              onChange={(e) => {
-                setReason(e.target.value);
-                validateField("reason", e.target.value);
-              }}
-              multiline
-              rows={3}
-              error={!!errors.reason}
-              helperText={errors.reason}
-            />
+            <FormControl fullWidth margin="normal" error={!!errors.attendanceStatus}>
+              <InputLabel id="attendance-status-label">Attendance Status</InputLabel>
+              <StyledSelect
+                labelId="attendance-status-label"
+                value={attendanceStatus}
+                onChange={(e) => {
+                  setAttendanceStatus(e.target.value);
+                  validateField("attendanceStatus", e.target.value);
+                }}
+                label="Attendance Status"
+              >
+                <MenuItem value="present">Present</MenuItem>
+                <MenuItem value="absent">Absent</MenuItem>
+              </StyledSelect>
+              {errors.attendanceStatus && <FormHelperText>{errors.attendanceStatus}</FormHelperText>}
+            </FormControl>
 
             <AnimatePresence>
               {alertVisible && (

@@ -99,7 +99,7 @@ const UpdateTask = () => {
         Update Task
       </Typography>
       
-      <Grid container spacing={3}>
+      <Grid container spacing={3}   sx={{marginLeft:'-44px'}}>
         {tasks.map(task => (
           <Grid item xs={12} sm={6} md={4} key={task.id}>
             <motion.div

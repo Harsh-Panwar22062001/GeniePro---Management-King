@@ -24,6 +24,8 @@ import { thoughtsList} from '..//assets/userdata';
 import utc from 'dayjs/plugin/utc';
 import { Link } from 'react-router-dom';
 import timezone from 'dayjs/plugin/timezone';
+import { useAttendance } from '../components/statemanagement/AttendanceContext';
+// import { AvatarScene } from './AvatarScene';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -205,6 +207,7 @@ const Footer = styled(Box)(({ theme }) => ({
 
 const WelcomePage = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { attendanceRecords } = useAttendance();
   const [news, setNews] = useState([]);
   const [currentThoughtIndex, setCurrentThoughtIndex] = useState(0);
   const [bgColor, setBgColor] = useState('');
@@ -235,6 +238,8 @@ const WelcomePage = () => {
   const fetchNews = async () => {
     const API_KEY = '5d03ea2ee3d51d0b75de4f6e1f5a49ff';
     const API_BASE_URL = 'https://gnews.io/api/v4/search';
+
+    
   
     try {
       const response = await axios.get(API_BASE_URL, {
@@ -283,6 +288,8 @@ const WelcomePage = () => {
   };
   
 
+  const todayAttendance = attendanceRecords.filter(record => dayjs(record.startDate).isSame(currentTime, 'day'));
+
   return (
     <Box sx={{ flexGrow: 1, p: 3, mt: 4 }}>
       <AnimatedTypography
@@ -301,6 +308,11 @@ const WelcomePage = () => {
       >
         Welcome to GeniePro
       </AnimatedTypography>
+
+
+      {/* <Box sx={{ height: '300px', width: '100%', mb: 4 }}>
+        <AvatarScene />
+      </Box> */}
 
       <Typography
         variant="h5"
@@ -343,6 +355,20 @@ const WelcomePage = () => {
         </Typography>
       )}
 
+
+{todayAttendance.length > 0 ? (
+        <Card sx={{ margin: '20px', maxWidth: isMobile ? '100%' : '50%' }}>
+          <CardContent>
+            <Typography variant="h5">Today's Attendance</Typography>
+            <Typography variant="body1"><strong>Name:</strong> {todayAttendance[0].name}</Typography>
+            <Typography variant="body1"><strong>Attendance Status:</strong> {todayAttendance[0].attendanceStatus}</Typography>
+          </CardContent>
+        </Card>
+      ) : (
+        <Typography variant="body1" sx={{ marginTop: '20px', color: 'red' }}>
+          You have not marked today's attendance. <Link to="/attendance-report">Mark Attendance</Link>
+        </Typography>
+      )}
 
 
 

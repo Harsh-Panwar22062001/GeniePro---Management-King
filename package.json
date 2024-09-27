@@ -18,7 +18,10 @@
     "@mui/icons-material": "^5.16.7",
     "@mui/material": "^5.16.7",
     "@mui/x-date-pickers": "^7.16.0",
+    "@react-three/drei": "^9.114.0",
+    "@react-three/fiber": "^8.17.8",
     "@reduxjs/toolkit": "^2.1.0",
+    "@vladmandic/face-api": "^1.7.14",
     "axios": "^1.7.7",
     "clsx": "^2.1.0",
     "date-fns": "^3.6.0",
@@ -42,7 +45,8 @@
     "reactstrap": "^9.2.2",
     "recharts": "^2.12.0",
     "redux-persist": "^6.0.0",
-    "sonner": "^1.4.0"
+    "sonner": "^1.4.0",
+    "three": "^0.168.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.55",

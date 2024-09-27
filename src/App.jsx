@@ -28,6 +28,7 @@ import Settings from "./pages/Settings";
 import WelcomePage from "./pages/LandingPage";
 import Trash from "./pages/Trash";
 import Register from "./pages/Register";
+import ProfileInfo from "./pages/ProfileComponent";
 
 const theme = createTheme(); 
 
@@ -132,6 +133,7 @@ function MainApp() {
                 <Route path="/settings" element={<Settings/>} />
                 <Route path="trashed" element={<Trash/>} />
                 <Route path="landingpage" element={<WelcomePage/>} />
+                <Route path="/profileinfo" element={<ProfileInfo/>} />
 
 
               </Route>

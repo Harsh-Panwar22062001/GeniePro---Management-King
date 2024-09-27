@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { TextField, Button, Typography, Box, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { TextField, Button, Typography, Box, ToggleButton, ToggleButtonGroup , Snackbar , Alert} from "@mui/material";
 
 const Login = () => {
   const { user } = useSelector((state) => state.auth);
@@ -14,6 +14,7 @@ const Login = () => {
 
   const navigate = useNavigate();
   const [loginType, setLoginType] = useState('user');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: '' });
 
   const handleLoginTypeChange = (event, newLoginType) => {
     if (newLoginType !== null) {
@@ -22,7 +23,26 @@ const Login = () => {
   };
 
   const submitHandler = async (data) => {
-    console.log("submit", { ...data, loginType });
+    const { email, password } = data;
+    const savedUserData = JSON.parse(localStorage.getItem('userData'));
+
+    if (savedUserData && savedUserData.user_email === email && savedUserData.password === password) {
+      localStorage.setItem('loggedInUser', JSON.stringify(savedUserData));
+      setSnackbar({ open: true, message: 'Login successful!', severity: 'success' });
+      setTimeout(() => {
+        if (loginType === 'admin') {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/landingpage");
+        }
+      }, 1500);
+    } else {
+      setSnackbar({ open: true, message: 'Invalid email or password', severity: 'error' });
+    }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -137,6 +157,18 @@ const Login = () => {
 
             </div>
           </form>
+
+
+          <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
         </div>
       </div>
     </div>

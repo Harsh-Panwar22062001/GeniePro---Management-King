@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Person, Lock } from '@mui/icons-material';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function Register() {
   const [user, setUser] = useState({
@@ -111,23 +112,27 @@ function Register() {
     }
     setErrors({ ...errors, [fieldName]: error });
   };
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const isValid = Object.keys(errors).every((key) => errors[key] === '');
     if (isValid) {
+      const userData = {
+        user_fname: user.user_fname,
+        user_lname: user.user_lname,
+        user_email: user.user_email,
+        user_mob: user.user_mob,
+        user_addhar: user.user_addhar,
+        user_pan: user.user_pan,
+        user_ecode: user.user_ecode,
+        user_add: user.user_add,
+        password: user.password // Include password in userData
+      };
+
       const jsonData = {
         header: "newuserdata",
-        data: {
-          user_fname: user.user_fname,
-          user_lname: user.user_lname,
-          user_email: user.user_email,
-          user_mob: user.user_mob,
-          user_addhar: user.user_addhar,
-          user_pan: user.user_pan,
-          user_ecode: user.user_ecode,
-          user_add: user.user_add
-        }
+        data: userData
       };
 
       console.log('JSON data to be sent:', JSON.stringify(jsonData, null, 2));
@@ -135,7 +140,10 @@ function Register() {
       try {
         const response = await axios.post('https://workpanel.in/office_app/put_data/new_user_data.php', jsonData);
         if (response.data.success && response.data.msg === '1') {
-          setSnackbar({ open: true, message: 'User registered successfully!', severity: 'success' });
+          // Save user data to local storage
+          localStorage.setItem('userData', JSON.stringify(userData));
+          setSnackbar({ open: true, message: 'User registered successfully! You can now login.', severity: 'success' });
+          navigate('/login');
         } else {
           setSnackbar({ open: true, message: 'Registration failed. Please try again.', severity: 'error' });
         }

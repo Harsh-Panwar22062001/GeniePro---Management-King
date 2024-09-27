@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Encoding Example</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+</head>
+<body>
+    <input type="file" id="imageUpload" accept="image/*" />
+    <input type="text" id="userAddhar" placeholder="Enter Aadhar Number" />
+    <button id="scanButton">Scan</button>
+    <div id="status"></div>
+    
+    <script>
+        const imageUpload = document.getElementById('imageUpload');
+        const userAddhar = document.getElementById('userAddhar');
+        const scanButton = document.getElementById('scanButton');
+        const statusDiv = document.getElementById('status');
+
+     
+
+        async function getFaceEncoding(image) {
+            const img = await faceapi.bufferToImage(image);
+            const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+            if (!detections) {
+                throw new Error("No face detected");
+            }
+            return detections.descriptor;
+        }
+
+        scanButton.addEventListener('click', async () => {
+            await faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+            await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+            await faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+            if (imageUpload.files.length === 0 || userAddhar.value.trim() === '') {
+                alert("Please select an image and enter Aadhar number.");
+                return;
+            }
+
+            const imageFile = imageUpload.files[0];
+            statusDiv.innerText = "Processing face encoding...";
+
+            try {
+                // Get face encoding from the selected image
+                const faceEncodings = await getFaceEncoding(imageFile);
+
+                // Prepare FormData to send to the server
+                const formData = new FormData();
+                const imageName = `${userAddhar.value}.jpg`; // Rename image based on Aadhar number
+
+                formData.append('file', imageFile, imageName); // Append the image file
+                formData.append('user_addhar', userAddhar.value);
+                formData.append('user_img', imageName); // The image name that will be saved
+                formData.append('user_face_data', JSON.stringify(Array.from(faceEncodings))); // Face encoding as a string
+
+                // Send the form data to the server
+                await updateUserFaceData(formData);
+
+            } catch (error) {
+                console.error('Error processing face encoding:', error);
+                statusDiv.innerText = "Error processing face encoding.";
+            }
+        });
+
+        async function updateUserFaceData(formData) {
+            try {
+                const response = await fetch('face_api/face_api.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('User face data updated successfully');
+                    statusDiv.innerText = "User face data updated successfully.";
+                } else {
+                    console.error('Error updating face data:', data.msg);
+                    statusDiv.innerText = `Error updating face data: ${data.msg}`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.innerText = `Error: ${error.message}`;
+            }
+        }
+
+        
+    </script>
+</body>
+</html>

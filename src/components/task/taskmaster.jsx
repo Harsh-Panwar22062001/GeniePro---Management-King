@@ -24,12 +24,12 @@ import {
   Flag as FlagIcon,
   Star as StarIcon,
   Comment as CommentIcon,
-  Download as DownloadIcon, // Added Download Icon
+  Download as DownloadIcon, 
 } from "@mui/icons-material";
 import { useTasks } from "../../components/statemanagement/TaskContext";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import html2canvas from "html2canvas"; // Added html2canvas
+import html2canvas from "html2canvas"; 
 
 const StyledCard = styled(Card)(({ theme }) => ({
   height: "100%",
@@ -133,9 +133,11 @@ const TaskMaster = () => {
           }}
           sx={{
             flex: 1,
-            maxWidth: "400px",
+            maxWidth: "1200px",
             backgroundColor: "white",
             borderRadius: "4px",
+            
+                 margin:"6px"
           }}
         />
         <StyledButton

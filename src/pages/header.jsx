@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
@@ -84,12 +84,21 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 const Header = ({ toggleSidebar }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
-  const { user } = useSelector((state) => state.auth);
+  const { user, userData } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate(); 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isSidebarOpen = useSelector((state) => state.auth.openSidebar);
+  const [userDataState, setUserData] = useState({}); 
+
+
+  useEffect(() => {
+    const storedUserData = localStorage.getItem('loggedInUser');
+    if (storedUserData) {
+      setUserData(JSON.parse(storedUserData));
+    }
+  }, []);
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -115,12 +124,18 @@ const Header = ({ toggleSidebar }) => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('userData');
     handleMenuClose();
     navigate("/login");
   };
 
   const handleHomeClick = () => {
     navigate("/landingpage");
+  };
+
+  const handleProfileClick = () => {
+    navigate("/profile");
+    handleMenuClose();
   };
 
   const isMenuOpen = Boolean(anchorEl);
@@ -220,17 +235,25 @@ const Header = ({ toggleSidebar }) => {
             </>
           )}
 
-          <Tooltip title="Profile">
-            <IconButton
-              edge="end"
-              color="inherit"
-              onClick={handleProfileMenuOpen}
-            >
-              <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>
-                {user?.name.charAt(0)}
-              </Avatar>
-            </IconButton>
-          </Tooltip>
+<Tooltip title="Profile">
+        <IconButton
+          edge="end"
+          color="inherit"
+          onClick={handleProfileMenuOpen}
+        >
+          {userDataState && userDataState.user_fname ? ( // Check if userDataState exists
+            <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>
+              {userDataState.user_fname.charAt(0).toUpperCase()}
+            </Avatar>
+          ) : (
+            <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>
+              U
+            </Avatar>
+          )}
+        </IconButton>
+      </Tooltip>
+
+
         </Box>
         <Menu
           anchorEl={anchorEl}
@@ -240,7 +263,7 @@ const Header = ({ toggleSidebar }) => {
           open={isMenuOpen}
           onClose={handleMenuClose}
         >
-          <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
+         <MenuItem onClick={() => navigate("/profileinfo")}>Profile</MenuItem>
           <MenuItem onClick={handleMenuClose}>My Tasks</MenuItem>
           <MenuItem onClick={handleSettingMenu}>Settings</MenuItem>
           <Divider />
