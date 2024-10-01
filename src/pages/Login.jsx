@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import { TextField, Button, Typography, Box, ToggleButton, ToggleButtonGroup , Snackbar , Alert} from "@mui/material";
 
 const Login = () => {
-  const { user } = useSelector((state) => state.auth);
+  // const { user } = useSelector((state) => state.auth);
   const {
     register,
     handleSubmit,
@@ -24,11 +24,16 @@ const Login = () => {
 
   const submitHandler = async (data) => {
     const { email, password } = data;
-    const savedUserData = JSON.parse(localStorage.getItem('userData'));
+    const users = JSON.parse(localStorage.getItem('users')) || [];
 
-    if (savedUserData && savedUserData.user_email === email && savedUserData.password === password) {
-      localStorage.setItem('loggedInUser', JSON.stringify(savedUserData));
+    const user = users.find(u => u.user_email === email && u.password === password);
+
+    if (user) {
+      localStorage.setItem('loggedInUser', JSON.stringify(user));
       setSnackbar({ open: true, message: 'Login successful!', severity: 'success' });
+      navigate('/landingpage')
+      window.location.reload();
+      
       setTimeout(() => {
         if (loginType === 'admin') {
           navigate("/admin-dashboard");
@@ -40,6 +45,7 @@ const Login = () => {
       setSnackbar({ open: true, message: 'Invalid email or password', severity: 'error' });
     }
   };
+
 
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });

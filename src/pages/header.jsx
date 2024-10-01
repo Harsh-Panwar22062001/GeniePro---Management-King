@@ -84,19 +84,19 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 const Header = ({ toggleSidebar }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
-  const { user, userData } = useSelector((state) => state.auth);
+  // const { user, userData } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate(); 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isSidebarOpen = useSelector((state) => state.auth.openSidebar);
-  const [userDataState, setUserData] = useState({}); 
+  const [loggedInUser, setLoggedInUser] = useState(null);
 
 
   useEffect(() => {
-    const storedUserData = localStorage.getItem('loggedInUser');
-    if (storedUserData) {
-      setUserData(JSON.parse(storedUserData));
+    const storedUser = localStorage.getItem('loggedInUser');
+    if (storedUser) {
+      setLoggedInUser(JSON.parse(storedUser));
     }
   }, []);
 
@@ -124,10 +124,12 @@ const Header = ({ toggleSidebar }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('userData');
+    localStorage.removeItem('loggedInUser');
+    setLoggedInUser(null);
     handleMenuClose();
     navigate("/login");
   };
+
 
   const handleHomeClick = () => {
     navigate("/landingpage");
@@ -236,22 +238,22 @@ const Header = ({ toggleSidebar }) => {
           )}
 
 <Tooltip title="Profile">
-        <IconButton
-          edge="end"
-          color="inherit"
-          onClick={handleProfileMenuOpen}
-        >
-          {userDataState && userDataState.user_fname ? ( // Check if userDataState exists
-            <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>
-              {userDataState.user_fname.charAt(0).toUpperCase()}
-            </Avatar>
-          ) : (
-            <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>
-              U
-            </Avatar>
-          )}
-        </IconButton>
-      </Tooltip>
+            <IconButton
+              edge="end"
+              color="inherit"
+              onClick={handleProfileMenuOpen}
+            >
+              {loggedInUser ? (
+                <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>
+                  {loggedInUser.user_fname.charAt(0).toUpperCase()}
+                </Avatar>
+              ) : (
+                <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>
+                  U
+                </Avatar>
+              )}
+            </IconButton>
+          </Tooltip>
 
 
         </Box>
@@ -263,9 +265,9 @@ const Header = ({ toggleSidebar }) => {
           open={isMenuOpen}
           onClose={handleMenuClose}
         >
-         <MenuItem onClick={() => navigate("/profileinfo")}>Profile</MenuItem>
-          <MenuItem onClick={handleMenuClose}>My Tasks</MenuItem>
-          <MenuItem onClick={handleSettingMenu}>Settings</MenuItem>
+         <MenuItem onClick={() => { navigate("/profileinfo"); handleMenuClose(); }}>Profile</MenuItem>
+  <MenuItem onClick={() => { navigate("/task-master"); handleMenuClose(); }}>My Tasks</MenuItem>
+  <MenuItem onClick={() => { handleSettingMenu(); handleMenuClose(); }}>Settings</MenuItem>
           <Divider />
           <MenuItem onClick={handleLogout}>Logout</MenuItem>
         </Menu>

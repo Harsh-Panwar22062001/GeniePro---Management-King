@@ -47,7 +47,8 @@ function Register() {
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: '' });
-
+  
+  
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setUser({ ...user, [name]: value });
@@ -116,6 +117,23 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    Object.keys(user).forEach(key => validateField(key, user[key]));
+    
+    const hasErrors = Object.values(errors).some(error => error !== '');
+    
+    if (hasErrors) {
+      setSnackbar({ open: true, message: 'Please correct the errors in the form before submitting.', severity: 'warning' });
+      return;
+    }
+
+    const allFieldsEmpty = Object.values(user).every((value) => value === '');
+
+    if (allFieldsEmpty) {
+      setSnackbar({ open: true, message: 'Please fill in all the fields.', severity: 'warning' });
+      return;
+    }
+
     const isValid = Object.keys(errors).every((key) => errors[key] === '');
     if (isValid) {
       const userData = {
@@ -139,10 +157,16 @@ function Register() {
 
       try {
         const response = await axios.post('https://workpanel.in/office_app/put_data/new_user_data.php', jsonData);
+
+        
         if (response.data.success && response.data.msg === '1') {
-          // Save user data to local storage
-          localStorage.setItem('userData', JSON.stringify(userData));
-          setSnackbar({ open: true, message: 'User registered successfully! You can now login.', severity: 'success' });
+
+          const existingUsers = JSON.parse(localStorage.getItem('users')) || [];
+  // Add new user to the array
+          existingUsers.push(userData);
+          
+          localStorage.setItem('users', JSON.stringify(existingUsers));
+ setSnackbar({ open : true, message: 'User registered successfully! You can now login.', severity: 'success' });
           navigate('/login');
         } else {
           setSnackbar({ open: true, message: 'Registration failed. Please try again.', severity: 'error' });
@@ -155,6 +179,7 @@ function Register() {
       setSnackbar({ open: true, message: 'Please correct the errors in the form.', severity: 'warning' });
     }
   };
+
 
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -314,7 +339,7 @@ function Register() {
               <TextField
                 label="Password"
                 name="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? ' text' : 'password'}
                 fullWidth
                 margin="normal"
                 placeholder="Enter a strong password"
@@ -367,9 +392,14 @@ function Register() {
               />
 
               {/* Submit Button */}
-              <Button variant="contained" color="primary" fullWidth onClick={handleSubmit}>
+              <Button variant="contained" color="primary" fullWidth onClick={handleSubmit} disabled={!Object.keys(errors).every((key) => errors[key] === '')}>
                 Sign Up
               </Button>
+              {snackbar.open && (
+  <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ mt: 2, width: '100%' }}>
+    {snackbar.message}
+  </Alert>
+)}
             </Grid>
             <Grid item md={6} xs={12} container alignItems="center" justifyContent="center">
               <img
@@ -382,17 +412,7 @@ function Register() {
         </CardContent>
       </Card>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+     
     </Container>
   );
 }
